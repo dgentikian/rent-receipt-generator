@@ -1,0 +1,28 @@
+[Unit]
+Description=Rent Receipt Generator Backend API
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/rent-receipt-generator
+ExecStart=/opt/rent-receipt-generator/backend/bin/rent-receipt-server
+Restart=always
+RestartSec=10
+
+# Environment variables
+EnvironmentFile=/opt/rent-receipt-generator/.env
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rent-receipt
+
+[Install]
+WantedBy=multi-user.target

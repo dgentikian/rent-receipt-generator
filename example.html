@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Quittances de Loyer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 800px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 30px;
+            text-align: center;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header h1 {
+            font-size: 1.3em;
+            margin: 0;
+        }
+
+        .header p {
+            display: none;
+        }
+
+        .main-layout {
+            display: flex;
+            flex: 1;
+            min-height: 700px;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: #f8f9fa;
+            border-right: 2px solid #e0e0e0;
+            padding: 15px 0;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            font-weight: 600;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95em;
+        }
+
+        .menu-item:hover {
+            background: #e9ecef;
+            color: #667eea;
+        }
+
+        .menu-item.active {
+            background: linear-gradient(90deg, #f0f4ff 0%, #ffffff 100%);
+            border-left-color: #667eea;
+            color: #667eea;
+        }
+
+        .menu-icon {
+            font-size: 1.2em;
+            width: 20px;
+            text-align: center;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #bbb;
+            opacity: 1;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .property-list, .tenant-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .property-card, .tenant-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .property-card:hover, .tenant-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .property-card.selected, .tenant-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .property-card h3, .tenant-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .property-card p, .tenant-card p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            color: #1976d2;
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #388e3c;
+        }
+
+        .charges-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .charge-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .charge-item input {
+            flex: 1;
+        }
+
+        .charge-item button {
+            padding: 8px 15px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .summary {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .summary h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .charges-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .charges-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .charges-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .charges-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .charges-detail:last-child {
+            border-bottom: none;
+        }
+
+        .charges-total {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .charges-total-global {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .charges-total-global h3 {
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        .charges-total-global .amount {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s;
+        }
+
+        .modal-content.modal-form {
+            max-width: 600px;
+        }
+
+        .btn-add-floating {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 24px;
+            font-size: 1em;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            white-space: nowrap;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 20px;
+        }
+
+        .list-header h2 {
+            margin: 0;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+            margin: 0;
+        }
+
+        .modal-filter {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .modal-filter label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .modal-filter select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+        }
+
+        .modal-filter select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #667eea;
+        }
+
+        .history-item {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .history-item-info {
+            flex: 1;
+        }
+
+        .history-item-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .history-item-month {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .history-item-date {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .history-item-amount {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .history-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .history-summary h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .history-summary .total {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .btn-history {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        .btn-regenerate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 16px;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+
+            .main-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 2px solid #e0e0e0;
+                padding: 10px 0;
+            }
+
+            .menu-item {
+                padding: 15px 20px;
+            }
+
+            .content {
+                max-height: none;
+            }
+
+            .list-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .btn-add-floating {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Générateur de Quittances de Loyer</h1>
+            <p>Gérez vos propriétés et générez des quittances professionnelles en PDF</p>
+        </div>
+
+        <div class="main-layout">
+            <div class="sidebar">
+                <div class="menu-item active" onclick="switchTab('landlord')">
+                    <span class="menu-icon">👤</span>
+                    <span>Bailleur</span>
+                </div>
+                <div class="menu-item" onclick="switchTab('properties')">
+                    <span class="menu-icon">🏢</span>
+                    <span>Propriétés</span>
+                </div>
+                <div class="menu-item" onclick="switchTab('tenants')">
+                    <span class="menu-icon">👥</span>
+                    <span>Locataires</span>
+                </div>
+                <div class="menu-item" onclick="switchTab('charges')">
+                    <span class="menu-icon">💰</span>
+                    <span>Charges</span>
+                </div>
+                <div class="menu-item" onclick="switchTab('generate')">
+                    <span class="menu-icon">📄</span>
+                    <span>Générer Quittances</span>
+                </div>
+                <div class="menu-item" onclick="switchTab('data')">
+                    <span class="menu-icon">💾</span>
+                    <span>Import/Export</span>
+                </div>
+            </div>
+
+            <div class="content">
+            <!-- Onglet Bailleur -->
+            <div id="landlord" class="tab-content active">
+                <h2>Informations du Bailleur</h2>
+                <div class="alert alert-info">
+                    Ces informations apparaîtront sur toutes vos quittances de loyer.
+                </div>
+                
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Nom / Raison sociale *</label>
+                        <input type="text" id="landlordName" placeholder="Jean Dupont ou SCI Immobilière">
+                    </div>
+                    <div class="form-group">
+                        <label>Adresse *</label>
+                        <input type="text" id="landlordAddress" placeholder="12 rue de la Paix">
+                    </div>
+                </div>
+                
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Code postal *</label>
+                        <input type="text" id="landlordPostcode" placeholder="75001">
+                    </div>
+                    <div class="form-group">
+                        <label>Ville *</label>
+                        <input type="text" id="landlordCity" placeholder="Paris">
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="landlordEmail" placeholder="contact@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel" id="landlordPhone" placeholder="01 23 45 67 89">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Signature (optionnel)</label>
+                    <input type="file" id="signatureFile" accept="image/*" onchange="handleSignatureUpload()">
+                    <div id="signaturePreview" style="margin-top: 10px; display: none;">
+                        <p style="color: #667eea; font-weight: 600;">✓ Signature chargée</p>
+                        <img id="signatureImg" style="max-width: 200px; border: 1px solid #ddd; padding: 5px; border-radius: 5px;">
+                    </div>
+                </div>
+
+                <button class="btn" onclick="saveLandlord()">💾 Enregistrer mes informations</button>
+            </div>
+
+            <!-- Onglet Propriétés -->
+            <div id="properties" class="tab-content">
+                <div class="list-header">
+                    <h2>Gestion des Propriétés</h2>
+                    <button class="btn btn-add-floating" onclick="openAddPropertyModal()">➕ Ajouter une propriété</button>
+                </div>
+
+                <div id="propertyList" class="property-list"></div>
+            </div>
+
+            <!-- Onglet Locataires -->
+            <div id="tenants" class="tab-content">
+                <div class="list-header">
+                    <h2>Gestion des Locataires</h2>
+                    <button class="btn btn-add-floating" onclick="openAddTenantModal()">➕ Ajouter un locataire</button>
+                </div>
+
+                <div id="tenantList" class="tenant-list"></div>
+            </div>
+
+            <!-- Onglet Charges -->
+            <div id="charges" class="tab-content">
+                <h2>Suivi des Charges Annuelles</h2>
+                
+                <div class="alert alert-info">
+                    📊 Consultez le total des charges payées par chaque locataire pour une année donnée.
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Locataire</label>
+                        <select id="chargesTenant" onchange="updateChargesReport()">
+                            <option value="all">Tous les locataires</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Année à consulter</label>
+                        <select id="chargesYear" onchange="updateChargesReport()">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="chargesReport" style="margin-top: 30px;">
+                    <!-- Le rapport sera généré ici -->
+                </div>
+            </div>
+
+            <!-- Onglet Génération -->
+            <div id="generate" class="tab-content">
+                <h2>Générer des Quittances</h2>
+                
+                <div class="alert alert-info">
+                    Sélectionnez un locataire et la période pour générer une quittance de loyer.
+                </div>
+
+                <div class="form-group">
+                    <label>Locataire *</label>
+                    <select id="selectedTenant" onchange="updateReceiptPreview()">
+                        <option value="">Sélectionnez un locataire</option>
+                    </select>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Mois *</label>
+                        <select id="receiptMonth" onchange="updatePaymentDate()">
+                            <option value="01">Janvier</option>
+                            <option value="02">Février</option>
+                            <option value="03">Mars</option>
+                            <option value="04">Avril</option>
+                            <option value="05">Mai</option>
+                            <option value="06">Juin</option>
+                            <option value="07">Juillet</option>
+                            <option value="08">Août</option>
+                            <option value="09">Septembre</option>
+                            <option value="10">Octobre</option>
+                            <option value="11">Novembre</option>
+                            <option value="12">Décembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Année *</label>
+                        <input type="number" id="receiptYear" value="2024" min="2020" max="2030" onchange="updatePaymentDate()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Date de paiement *</label>
+                    <input type="date" id="paymentDate" onchange="updateReceiptPreview()">
+                </div>
+
+                <div id="receiptSummary" class="summary" style="display: none;">
+                    <h3>Récapitulatif</h3>
+                    <div class="summary-item">
+                        <span>Locataire :</span>
+                        <span id="summaryTenant">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Propriété :</span>
+                        <span id="summaryProperty">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Période :</span>
+                        <span id="summaryPeriod">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Loyer hors charges :</span>
+                        <span id="summaryRent">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Charges :</span>
+                        <span id="summaryCharges">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Total TTC :</span>
+                        <span id="summaryTotal">-</span>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="generatePDF()">📄 Générer la quittance PDF</button>
+                <button class="btn btn-secondary" onclick="generateMultiplePDFs()">📑 Générer pour tous les locataires</button>
+            </div>
+
+            <!-- Onglet Gestion des données -->
+            <div id="data" class="tab-content">
+                <h2>Import / Export des Données</h2>
+                
+                <div class="alert alert-info">
+                    💡 <strong>Important :</strong> Vos données sont actuellement stockées dans votre navigateur. Utilisez cette fonction pour faire des sauvegardes ou transférer vos données entre ordinateurs.
+                </div>
+
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">📤 Exporter toutes les données</h3>
+                    <p style="margin-bottom: 15px; color: #666;">
+                        Téléchargez un fichier JSON contenant toutes vos informations : bailleur, propriétés et locataires.
+                    </p>
+                    <button class="btn" onclick="exportAllData()">📥 Télécharger mes données (JSON)</button>
+                    
+                    <div id="exportStats" style="margin-top: 15px; padding: 10px; background: white; border-radius: 5px; display: none;">
+                        <p style="margin: 5px 0;"><strong>Données à exporter :</strong></p>
+                        <p style="margin: 5px 0; color: #666;">• Informations bailleur : <span id="statLandlord">-</span></p>
+                        <p style="margin: 5px 0; color: #666;">• Propriétés : <span id="statProperties">-</span></p>
+                        <p style="margin: 5px 0; color: #666;">• Locataires : <span id="statTenants">-</span></p>
+                    </div>
+                </div>
+
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">📥 Importer des données</h3>
+                    <p style="margin-bottom: 15px; color: #666;">
+                        Restaurez vos données depuis un fichier JSON précédemment exporté.
+                    </p>
+                    <p style="margin-bottom: 15px; color: #e67e22; font-weight: 600;">
+                        ⚠️ Attention : Cette opération remplacera toutes vos données actuelles !
+                    </p>
+                    <input type="file" id="importFile" accept=".json" style="margin-bottom: 10px;">
+                    <br>
+                    <button class="btn btn-secondary" onclick="importAllData()">📤 Restaurer mes données</button>
+                </div>
+
+                <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <h3 style="color: #856404; margin-bottom: 15px;">🗑️ Zone dangereuse</h3>
+                    <p style="margin-bottom: 15px; color: #856404;">
+                        Supprimez toutes vos données de manière permanente.
+                    </p>
+                    <button class="btn btn-danger" onclick="deleteAllData()">🗑️ Supprimer toutes les données</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Historique -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Historique des quittances</h2>
+                <button class="modal-close" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            <div id="historyModalContent">
+                <!-- Le contenu sera généré dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Ajouter Propriété -->
+    <div id="addPropertyModal" class="modal">
+        <div class="modal-content modal-form">
+            <div class="modal-header">
+                <h2>Ajouter une propriété</h2>
+                <button class="modal-close" onclick="closeAddPropertyModal()">&times;</button>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Adresse du bien *</label>
+                    <input type="text" id="propertyAddress" placeholder="5 avenue des Champs, Appt 12">
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Code postal *</label>
+                        <input type="text" id="propertyPostcode" placeholder="75008">
+                    </div>
+                    <div class="form-group">
+                        <label>Ville *</label>
+                        <input type="text" id="propertyCity" placeholder="Paris">
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Type de bien</label>
+                        <select id="propertyType">
+                            <option value="Appartement">Appartement</option>
+                            <option value="Maison">Maison</option>
+                            <option value="Studio">Studio</option>
+                            <option value="Local commercial">Local commercial</option>
+                            <option value="Garage">Garage</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de pièces *</label>
+                        <input type="number" id="propertyRooms" placeholder="2" min="1" max="20">
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px; color: #667eea; font-size: 1.1em;">Informations du syndic</h3>
+
+                <div class="form-group">
+                    <label>Nom du syndic</label>
+                    <input type="text" id="propertySyndicName" placeholder="Syndic Immobilier Paris">
+                </div>
+
+                <div class="form-group">
+                    <label>RIB du syndic (IBAN)</label>
+                    <input type="text" id="propertySyndicIBAN" placeholder="FR76 1234 5678 9012 3456 7890 123">
+                </div>
+
+                <button class="btn" onclick="addProperty()" style="width: 100%; margin-top: 20px;">➕ Ajouter cette propriété</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Modifier Propriété -->
+    <div id="editPropertyModal" class="modal">
+        <div class="modal-content modal-form">
+            <div class="modal-header">
+                <h2>Modifier une propriété</h2>
+                <button class="modal-close" onclick="closeEditPropertyModal()">&times;</button>
+            </div>
+            <div>
+                <input type="hidden" id="editPropertyId">
+                
+                <div class="form-group">
+                    <label>Adresse du bien *</label>
+                    <input type="text" id="editPropertyAddress" placeholder="5 avenue des Champs, Appt 12">
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Code postal *</label>
+                        <input type="text" id="editPropertyPostcode" placeholder="75008">
+                    </div>
+                    <div class="form-group">
+                        <label>Ville *</label>
+                        <input type="text" id="editPropertyCity" placeholder="Paris">
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Type de bien</label>
+                        <select id="editPropertyType">
+                            <option value="Appartement">Appartement</option>
+                            <option value="Maison">Maison</option>
+                            <option value="Studio">Studio</option>
+                            <option value="Local commercial">Local commercial</option>
+                            <option value="Garage">Garage</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de pièces *</label>
+                        <input type="number" id="editPropertyRooms" placeholder="2" min="1" max="20">
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px; color: #667eea; font-size: 1.1em;">Informations du syndic</h3>
+
+                <div class="form-group">
+                    <label>Nom du syndic</label>
+                    <input type="text" id="editPropertySyndicName" placeholder="Syndic Immobilier Paris">
+                </div>
+
+                <div class="form-group">
+                    <label>RIB du syndic (IBAN)</label>
+                    <input type="text" id="editPropertySyndicIBAN" placeholder="FR76 1234 5678 9012 3456 7890 123">
+                </div>
+
+                <button class="btn" onclick="saveEditProperty()" style="width: 100%; margin-top: 20px;">💾 Enregistrer les modifications</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Ajouter Locataire -->
+    <div id="addTenantModal" class="modal">
+        <div class="modal-content modal-form">
+            <div class="modal-header">
+                <h2>Ajouter un locataire</h2>
+                <button class="modal-close" onclick="closeAddTenantModal()">&times;</button>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Propriété *</label>
+                    <select id="tenantProperty">
+                        <option value="">Sélectionnez une propriété</option>
+                    </select>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Nom du locataire *</label>
+                        <input type="text" id="tenantName" placeholder="Marie Martin">
+                    </div>
+                    <div class="form-group">
+                        <label>Date de début du bail *</label>
+                        <input type="date" id="tenantStartDate">
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Loyer mensuel hors charges (€) *</label>
+                        <input type="number" id="tenantRent" placeholder="850" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Charges mensuelles (€) *</label>
+                        <input type="number" id="tenantCharges" placeholder="150" step="0.01">
+                    </div>
+                </div>
+
+                <button class="btn" onclick="addTenant()" style="width: 100%; margin-top: 20px;">➕ Ajouter ce locataire</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Modifier Locataire -->
+    <div id="editTenantModal" class="modal">
+        <div class="modal-content modal-form">
+            <div class="modal-header">
+                <h2>Modifier un locataire</h2>
+                <button class="modal-close" onclick="closeEditTenantModal()">&times;</button>
+            </div>
+            <div>
+                <input type="hidden" id="editTenantId">
+                
+                <div class="form-group">
+                    <label>Propriété *</label>
+                    <select id="editTenantProperty">
+                        <option value="">Sélectionnez une propriété</option>
+                    </select>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Nom du locataire *</label>
+                        <input type="text" id="editTenantName" placeholder="Marie Martin">
+                    </div>
+                    <div class="form-group">
+                        <label>Date de début du bail *</label>
+                        <input type="date" id="editTenantStartDate">
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>Loyer mensuel hors charges (€) *</label>
+                        <input type="number" id="editTenantRent" placeholder="850" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Charges mensuelles (€) *</label>
+                        <input type="number" id="editTenantCharges" placeholder="150" step="0.01">
+                    </div>
+                </div>
+
+                <button class="btn" onclick="saveEditTenant()" style="width: 100%; margin-top: 20px;">💾 Enregistrer les modifications</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialisation
+        let landlordData = JSON.parse(localStorage.getItem('landlordData')) || {};
+        let properties = JSON.parse(localStorage.getItem('properties')) || [];
+        let tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+        let receiptsHistory = JSON.parse(localStorage.getItem('receiptsHistory')) || [];
+        
+        // Variables pour gérer les historiques filtrés
+        let currentHistoryData = null;
+        let currentHistoryType = null;
+
+        // Charger les données au démarrage
+        window.onload = function() {
+            loadLandlordData();
+            updatePropertyList();
+            updateTenantList();
+            updatePropertySelects();
+            updateTenantSelect();
+            
+            // Définir le mois actuel par défaut
+            const today = new Date();
+            const currentMonth = today.getMonth() + 1;
+            const currentYear = today.getFullYear();
+            
+            document.getElementById('receiptMonth').value = String(currentMonth).padStart(2, '0');
+            document.getElementById('receiptYear').value = currentYear;
+            
+            // Calculer la date de paiement (5 du mois suivant)
+            let paymentMonth = currentMonth + 1;
+            let paymentYear = currentYear;
+            
+            if (paymentMonth > 12) {
+                paymentMonth = 1;
+                paymentYear += 1;
+            }
+            
+            const paymentDate = `${paymentYear}-${String(paymentMonth).padStart(2, '0')}-05`;
+            document.getElementById('paymentDate').value = paymentDate;
+            
+            // Définir l'année pour les charges
+            document.getElementById('chargesYear').value = currentYear;
+        };
+
+        // Changer d'onglet
+        function switchTab(tabName) {
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.closest('.menu-item').classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // Gestion du bailleur
+        function loadLandlordData() {
+            if (landlordData.name) {
+                document.getElementById('landlordName').value = landlordData.name || '';
+                document.getElementById('landlordAddress').value = landlordData.address || '';
+                document.getElementById('landlordPostcode').value = landlordData.postcode || '';
+                document.getElementById('landlordCity').value = landlordData.city || '';
+                document.getElementById('landlordEmail').value = landlordData.email || '';
+                document.getElementById('landlordPhone').value = landlordData.phone || '';
+                
+                if (landlordData.signature) {
+                    document.getElementById('signaturePreview').style.display = 'block';
+                    document.getElementById('signatureImg').src = landlordData.signature;
+                }
+            }
+        }
+
+        function handleSignatureUpload() {
+            const file = document.getElementById('signatureFile').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const signatureData = e.target.result;
+                    document.getElementById('signaturePreview').style.display = 'block';
+                    document.getElementById('signatureImg').src = signatureData;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveLandlord() {
+            const signatureImg = document.getElementById('signatureImg');
+            
+            landlordData = {
+                name: document.getElementById('landlordName').value,
+                address: document.getElementById('landlordAddress').value,
+                postcode: document.getElementById('landlordPostcode').value,
+                city: document.getElementById('landlordCity').value,
+                email: document.getElementById('landlordEmail').value,
+                phone: document.getElementById('landlordPhone').value,
+                signature: signatureImg.src && signatureImg.src.startsWith('data:') ? signatureImg.src : null
+            };
+            
+            if (!landlordData.name || !landlordData.address || !landlordData.postcode || !landlordData.city) {
+                alert('Veuillez remplir tous les champs obligatoires (*)');
+                return;
+            }
+            
+            localStorage.setItem('landlordData', JSON.stringify(landlordData));
+            alert('✅ Vos informations ont été enregistrées avec succès !');
+        }
+
+        // Gestion des propriétés
+        function addProperty() {
+            const property = {
+                id: Date.now(),
+                address: document.getElementById('propertyAddress').value,
+                postcode: document.getElementById('propertyPostcode').value,
+                city: document.getElementById('propertyCity').value,
+                type: document.getElementById('propertyType').value,
+                rooms: parseInt(document.getElementById('propertyRooms').value),
+                syndicName: document.getElementById('propertySyndicName').value || '',
+                syndicIBAN: document.getElementById('propertySyndicIBAN').value || ''
+            };
+            
+            if (!property.address || !property.postcode || !property.city || !property.rooms) {
+                alert('Veuillez remplir tous les champs obligatoires (*)');
+                return;
+            }
+            
+            properties.push(property);
+            localStorage.setItem('properties', JSON.stringify(properties));
+            
+            document.getElementById('propertyAddress').value = '';
+            document.getElementById('propertyPostcode').value = '';
+            document.getElementById('propertyCity').value = '';
+            document.getElementById('propertyRooms').value = '';
+            document.getElementById('propertySyndicName').value = '';
+            document.getElementById('propertySyndicIBAN').value = '';
+            
+            updatePropertyList();
+            updatePropertySelects();
+            closeAddPropertyModal();
+            alert('✅ Propriété ajoutée avec succès !');
+        }
+
+        function updatePropertyList() {
+            const list = document.getElementById('propertyList');
+            list.innerHTML = '';
+            
+            if (properties.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Aucune propriété enregistrée</p>';
+                return;
+            }
+            
+            properties.forEach(property => {
+                const card = document.createElement('div');
+                card.className = 'property-card';
+                
+                let syndicInfo = '';
+                if (property.syndicName || property.syndicIBAN) {
+                    syndicInfo = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">';
+                    if (property.syndicName) {
+                        syndicInfo += `<p><strong>🏢 Syndic :</strong> ${property.syndicName}</p>`;
+                    }
+                    if (property.syndicIBAN) {
+                        syndicInfo += `<p><strong>💳 IBAN :</strong> ${property.syndicIBAN}</p>`;
+                    }
+                    syndicInfo += '</div>';
+                }
+                
+                card.innerHTML = `
+                    <h3>${property.type} - ${property.rooms} pièce${property.rooms > 1 ? 's' : ''}</h3>
+                    <p><strong>📍</strong> ${property.address}</p>
+                    <p>${property.postcode} ${property.city}</p>
+                    ${syndicInfo}
+                    <button class="btn btn-history" style="margin-top: 10px; margin-right: 10px; padding: 8px 15px; font-size: 0.9em;" onclick="showPropertyHistory(${property.id})">📊 Historique</button>
+                    <button class="btn" style="margin-top: 10px; margin-right: 10px; padding: 8px 15px; font-size: 0.9em;" onclick="editProperty(${property.id})">✏️ Modifier</button>
+                    <button class="btn btn-danger" style="margin-top: 10px; padding: 8px 15px; font-size: 0.9em;" onclick="deleteProperty(${property.id})">🗑️ Supprimer</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function deleteProperty(id) {
+            const property = properties.find(p => p.id === id);
+            if (!property) return;
+            
+            // Vérifier si des locataires sont associés à cette propriété
+            const associatedTenants = tenants.filter(t => t.propertyId === id);
+            
+            let confirmMessage = `⚠️ Êtes-vous sûr de vouloir supprimer cette propriété ?\n\n`;
+            confirmMessage += `${property.type} - ${property.address}\n`;
+            confirmMessage += `${property.postcode} ${property.city}`;
+            
+            if (associatedTenants.length > 0) {
+                confirmMessage += `\n\n❗ ATTENTION : ${associatedTenants.length} locataire(s) est/sont associé(s) à cette propriété :\n`;
+                associatedTenants.forEach(tenant => {
+                    confirmMessage += `- ${tenant.name}\n`;
+                });
+                confirmMessage += `\nLa suppression de cette propriété ne supprimera PAS les locataires.`;
+            }
+            
+            if (confirm(confirmMessage)) {
+                properties = properties.filter(p => p.id !== id);
+                localStorage.setItem('properties', JSON.stringify(properties));
+                updatePropertyList();
+                updatePropertySelects();
+                alert('✅ Propriété supprimée avec succès');
+            }
+        }
+
+        function updatePropertySelects() {
+            const select = document.getElementById('tenantProperty');
+            select.innerHTML = '<option value="">Sélectionnez une propriété</option>';
+            
+            properties.forEach(property => {
+                const option = document.createElement('option');
+                option.value = property.id;
+                option.textContent = `${property.type} - ${property.address}, ${property.city}`;
+                select.appendChild(option);
+            });
+        }
+
+        // Gestion des locataires
+        function addTenant() {
+            const tenant = {
+                id: Date.now(),
+                propertyId: parseInt(document.getElementById('tenantProperty').value),
+                name: document.getElementById('tenantName').value,
+                startDate: document.getElementById('tenantStartDate').value,
+                rent: parseFloat(document.getElementById('tenantRent').value),
+                charges: parseFloat(document.getElementById('tenantCharges').value)
+            };
+            
+            if (!tenant.propertyId || !tenant.name || !tenant.startDate || !tenant.rent || tenant.charges === '') {
+                alert('Veuillez remplir tous les champs obligatoires (*)');
+                return;
+            }
+            
+            tenants.push(tenant);
+            localStorage.setItem('tenants', JSON.stringify(tenants));
+            
+            document.getElementById('tenantProperty').value = '';
+            document.getElementById('tenantName').value = '';
+            document.getElementById('tenantStartDate').value = '';
+            document.getElementById('tenantRent').value = '';
+            document.getElementById('tenantCharges').value = '';
+            
+            updateTenantList();
+            updateTenantSelect();
+            closeAddTenantModal();
+            alert('✅ Locataire ajouté avec succès !');
+        }
+
+        function updateTenantList() {
+            const list = document.getElementById('tenantList');
+            list.innerHTML = '';
+            
+            if (tenants.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Aucun locataire enregistré</p>';
+                return;
+            }
+            
+            tenants.forEach(tenant => {
+                const property = properties.find(p => p.id === tenant.propertyId);
+                const card = document.createElement('div');
+                card.className = 'tenant-card';
+                card.innerHTML = `
+                    <h3>${tenant.name}</h3>
+                    <p><strong>🏢</strong> ${property ? property.address : 'Propriété inconnue'}</p>
+                    <p><strong>💰</strong> ${tenant.rent.toFixed(2)}€ + ${tenant.charges.toFixed(2)}€ charges</p>
+                    <p><strong>📅</strong> Depuis le ${new Date(tenant.startDate).toLocaleDateString('fr-FR')}</p>
+                    <button class="btn btn-history" style="margin-top: 10px; margin-right: 10px;" onclick="showTenantHistory(${tenant.id})">📊 Historique</button>
+                    <button class="btn" style="margin-top: 10px; margin-right: 10px; padding: 8px 15px; font-size: 0.9em;" onclick="editTenant(${tenant.id})">✏️ Modifier</button>
+                    <button class="btn btn-danger" style="margin-top: 10px; padding: 8px 15px; font-size: 0.9em;" onclick="deleteTenant(${tenant.id})">🗑️ Supprimer</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function deleteTenant(id) {
+            const tenant = tenants.find(t => t.id === id);
+            if (!tenant) return;
+            
+            const property = properties.find(p => p.id === tenant.propertyId);
+            
+            // Vérifier s'il existe des quittances pour ce locataire
+            const tenantReceipts = receiptsHistory.filter(r => r.tenantId === id);
+            
+            let confirmMessage = `⚠️ Êtes-vous sûr de vouloir supprimer ce locataire ?\n\n`;
+            confirmMessage += `Nom : ${tenant.name}\n`;
+            confirmMessage += `Propriété : ${property ? property.address : 'Inconnue'}\n`;
+            confirmMessage += `Loyer : ${tenant.rent.toFixed(2)}€ + ${tenant.charges.toFixed(2)}€ charges`;
+            
+            if (tenantReceipts.length > 0) {
+                confirmMessage += `\n\n❗ ATTENTION : ${tenantReceipts.length} quittance(s) a/ont été générée(s) pour ce locataire.\n`;
+                confirmMessage += `L'historique des quittances sera également supprimé.`;
+            }
+            
+            if (confirm(confirmMessage)) {
+                // Supprimer le locataire
+                tenants = tenants.filter(t => t.id !== id);
+                localStorage.setItem('tenants', JSON.stringify(tenants));
+                
+                // Supprimer l'historique des quittances associées
+                if (tenantReceipts.length > 0) {
+                    receiptsHistory = receiptsHistory.filter(r => r.tenantId !== id);
+                    localStorage.setItem('receiptsHistory', JSON.stringify(receiptsHistory));
+                }
+                
+                updateTenantList();
+                updateTenantSelect();
+                alert('✅ Locataire supprimé avec succès');
+            }
+        }
+
+        function updateTenantSelect() {
+            const select = document.getElementById('selectedTenant');
+            select.innerHTML = '<option value="">Sélectionnez un locataire</option>';
+            
+            const chargesSelect = document.getElementById('chargesTenant');
+            chargesSelect.innerHTML = '<option value="all">Tous les locataires</option>';
+            
+            tenants.forEach(tenant => {
+                const property = properties.find(p => p.id === tenant.propertyId);
+                
+                const option = document.createElement('option');
+                option.value = tenant.id;
+                option.textContent = `${tenant.name} - ${property ? property.address : 'Propriété inconnue'}`;
+                select.appendChild(option);
+                
+                const chargesOption = document.createElement('option');
+                chargesOption.value = tenant.id;
+                chargesOption.textContent = `${tenant.name} - ${property ? property.address : 'Propriété inconnue'}`;
+                chargesSelect.appendChild(chargesOption);
+            });
+        }
+
+        function updateReceiptPreview() {
+            const tenantId = parseInt(document.getElementById('selectedTenant').value);
+            const month = document.getElementById('receiptMonth').value;
+            const year = document.getElementById('receiptYear').value;
+            
+            // Mettre à jour la date de paiement automatiquement
+            // On met le 5 du mois sélectionné
+            if (month && year) {
+                const selectedMonth = parseInt(month);
+                const paymentYear = parseInt(year);
+                
+                // Formater la date au format YYYY-MM-DD (5 du mois sélectionné)
+                const paymentDate = `${paymentYear}-${String(selectedMonth).padStart(2, '0')}-05`;
+                document.getElementById('paymentDate').value = paymentDate;
+            }
+            
+            if (!tenantId) {
+                document.getElementById('receiptSummary').style.display = 'none';
+                return;
+            }
+
+            const tenant = tenants.find(t => t.id === tenantId);
+            const property = properties.find(p => p.id === tenant.propertyId);
+
+            const monthNames = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+            document.getElementById('summaryTenant').textContent = tenant.name;
+            document.getElementById('summaryProperty').textContent = `${property.address}, ${property.city}`;
+            document.getElementById('summaryPeriod').textContent = `${monthNames[parseInt(month)]} ${year}`;
+            document.getElementById('summaryRent').textContent = `${tenant.rent.toFixed(2)} €`;
+            document.getElementById('summaryCharges').textContent = `${tenant.charges.toFixed(2)} €`;
+            document.getElementById('summaryTotal').textContent = `${(tenant.rent + tenant.charges).toFixed(2)} €`;
+
+            document.getElementById('receiptSummary').style.display = 'block';
+        }
+
+        function updatePaymentDate() {
+            const month = document.getElementById('receiptMonth').value;
+            const year = document.getElementById('receiptYear').value;
+            
+            // Définir la date au 5 du mois sélectionné (vous pouvez changer ce jour)
+            const paymentDate = `${year}-${month}-05`;
+            document.getElementById('paymentDate').value = paymentDate;
+            
+            updateReceiptPreview();
+        }
+
+        // Génération PDF
+        function generatePDF() {
+            const tenantId = parseInt(document.getElementById('selectedTenant').value);
+            if (!tenantId) {
+                alert('Veuillez sélectionner un locataire');
+                return;
+            }
+
+            if (!landlordData.name) {
+                alert('Veuillez d\'abord enregistrer vos informations de bailleur');
+                document.querySelectorAll('.menu-item')[0].click();
+                return;
+            }
+
+            const tenant = tenants.find(t => t.id === tenantId);
+            const property = properties.find(p => p.id === tenant.propertyId);
+            const month = document.getElementById('receiptMonth').value;
+            const year = document.getElementById('receiptYear').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+
+            const monthNames = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            const monthName = monthNames[parseInt(month)];
+
+            createReceiptPDF(landlordData, property, tenant, monthName, year, paymentDate);
+        }
+
+        function createReceiptPDF(landlord, property, tenant, month, year, paymentDate, autoDownload = false) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const pageWidth = doc.internal.pageSize.width;
+            const margin = 20;
+
+            // En-tête
+            doc.setFillColor(102, 126, 234);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.setFont(undefined, 'bold');
+            doc.text('QUITTANCE DE LOYER', pageWidth / 2, 25, { align: 'center' });
+
+            // Informations bailleur
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text('BAILLEUR', margin, 55);
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text(landlord.name, margin, 62);
+            doc.text(landlord.address, margin, 68);
+            doc.text(`${landlord.postcode} ${landlord.city}`, margin, 74);
+            if (landlord.email) doc.text(`Email: ${landlord.email}`, margin, 80);
+            if (landlord.phone) doc.text(`Tél: ${landlord.phone}`, margin, 86);
+
+            // Informations locataire
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(11);
+            doc.text('LOCATAIRE', pageWidth - margin - 80, 55);
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text(tenant.name, pageWidth - margin - 80, 62);
+            doc.text(property.address, pageWidth - margin - 80, 68);
+            doc.text(`${property.postcode} ${property.city}`, pageWidth - margin - 80, 74);
+
+            // Ligne séparatrice
+            doc.setDrawColor(102, 126, 234);
+            doc.setLineWidth(0.5);
+            doc.line(margin, 95, pageWidth - margin, 95);
+
+            // Période et date de paiement
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Période : ${month} ${year}`, margin, 110);
+            doc.text(`Date de paiement : ${new Date(paymentDate).toLocaleDateString('fr-FR')}`, margin, 118);
+            
+            // Situation dans la copropriété
+            const roomsText = property.rooms > 1 ? `${property.rooms} pièces` : `${property.rooms} pièce`;
+            doc.text(`Situation dans la copropriété : ${roomsText}`, margin, 126);
+
+            // Détails du paiement
+            doc.setFillColor(240, 244, 255);
+            doc.rect(margin, 140, pageWidth - 2 * margin, 50, 'F');
+
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(11);
+            doc.text('DÉTAIL DU PAIEMENT', margin + 5, 150);
+
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text(`Loyer hors charges`, margin + 5, 160);
+            doc.text(`${tenant.rent.toFixed(2)} €`, pageWidth - margin - 5, 160, { align: 'right' });
+
+            doc.text(`Charges locatives`, margin + 5, 168);
+            doc.text(`${tenant.charges.toFixed(2)} €`, pageWidth - margin - 5, 168, { align: 'right' });
+
+            doc.setLineWidth(0.3);
+            doc.line(margin + 5, 175, pageWidth - margin - 5, 175);
+
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text(`TOTAL PAYÉ`, margin + 5, 183);
+            doc.text(`${(tenant.rent + tenant.charges).toFixed(2)} €`, pageWidth - margin - 5, 183, { align: 'right' });
+
+            // Mentions légales - première partie
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            const legalText1 = "Le propriétaire reconnaît avoir reçu du locataire la somme indiquée ci-dessus au titre du loyer et des charges pour la période mentionnée.";
+            const splitText1 = doc.splitTextToSize(legalText1, pageWidth - 2 * margin);
+            doc.text(splitText1, margin, 208);
+
+            // Mentions légales - deuxième partie (nouvelles mentions)
+            doc.setFontSize(7);
+            const legalText2 = "Donne quittance, sans préjudice au terme en cours, sous réserve de tout supplément pouvant être dû en vertu des lois ou conventions applicables et sous réserve de tous les droits et actions du propriétaire, de toute poursuite qui aurait pu être engagée et de toute décision de justice qui aurait pu être obtenue. En cas de congé précédemment donné, cette quittance représenterait l'indemnité d'occupation et ne saurait être considérée comme un titre d'occupation. Cette quittance annule tous les reçus qui auraient pu être donnés pour acompte versé sur le présent terme, même si ces reçus portent une date postérieure à la date ci-contre. Le paiement de la présente quittance n'emporte pas présomption de paiement des termes antérieurs.";
+            const splitText2 = doc.splitTextToSize(legalText2, pageWidth - 2 * margin);
+            doc.text(splitText2, margin, 218);
+
+            // Signature
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.text(landlord.name, margin, 260);
+            
+            // Ajouter la signature si elle existe
+            if (landlord.signature) {
+                try {
+                    doc.addImage(landlord.signature, 'PNG', margin + 50, 245, 40, 20);
+                } catch (e) {
+                    console.error('Erreur lors de l\'ajout de la signature:', e);
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(margin + 50, 260, margin + 100, 260);
+                }
+            } else {
+                doc.setDrawColor(200, 200, 200);
+                doc.line(margin + 50, 260, margin + 100, 260);
+            }
+
+            // Si génération multiple, télécharger. Sinon, ouvrir dans un nouvel onglet
+            if (autoDownload) {
+                const filename = `Quittance_${tenant.name.replace(/\s/g, '_')}_${month}_${year}.pdf`;
+                doc.save(filename);
+            } else {
+                const pdfBlob = doc.output('blob');
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                window.open(pdfUrl, '_blank');
+                
+                // Nettoyer l'URL après un délai pour libérer la mémoire
+                setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+            }
+            
+            // Enregistrer l'historique de cette quittance
+            saveReceiptHistory(tenant.id, month, year, tenant.charges, paymentDate);
+        }
+
+        function generateMultiplePDFs() {
+            if (tenants.length === 0) {
+                alert('Aucun locataire enregistré');
+                return;
+            }
+
+            if (!landlordData.name) {
+                alert('Veuillez d\'abord enregistrer vos informations de bailleur');
+                return;
+            }
+
+            const month = document.getElementById('receiptMonth').value;
+            const year = document.getElementById('receiptYear').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+
+            const monthNames = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            const monthName = monthNames[parseInt(month)];
+
+            let count = 0;
+            tenants.forEach(tenant => {
+                const property = properties.find(p => p.id === tenant.propertyId);
+                if (property) {
+                    setTimeout(() => {
+                        createReceiptPDF(landlordData, property, tenant, monthName, year, paymentDate, true);
+                    }, count * 500);
+                    count++;
+                }
+            });
+
+            alert(`✅ ${count} quittances vont être téléchargées. Veuillez autoriser les téléchargements multiples si votre navigateur vous le demande.`);
+        }
+
+        // Gestion de l'historique des charges
+        function saveReceiptHistory(tenantId, month, year, charges, paymentDate) {
+            // Créer une clé unique pour cette quittance
+            const receiptKey = `${tenantId}-${month}-${year}`;
+            
+            // Vérifier si cette quittance existe déjà
+            const existingIndex = receiptsHistory.findIndex(r => r.key === receiptKey);
+            
+            const receipt = {
+                key: receiptKey,
+                tenantId: tenantId,
+                month: month,
+                year: year,
+                charges: charges,
+                paymentDate: paymentDate,
+                generatedAt: new Date().toISOString()
+            };
+            
+            if (existingIndex >= 0) {
+                // Mettre à jour l'historique existant
+                receiptsHistory[existingIndex] = receipt;
+            } else {
+                // Ajouter un nouvel historique
+                receiptsHistory.push(receipt);
+            }
+            
+            // Sauvegarder dans localStorage
+            localStorage.setItem('receiptsHistory', JSON.stringify(receiptsHistory));
+        }
+
+        function updateChargesReport() {
+            const year = document.getElementById('chargesYear').value;
+            const selectedTenantId = document.getElementById('chargesTenant').value;
+            const reportDiv = document.getElementById('chargesReport');
+            
+            if (tenants.length === 0) {
+                reportDiv.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">Aucun locataire enregistré</p>';
+                return;
+            }
+            
+            let totalChargesYear = 0;
+            let html = '';
+            
+            // Filtrer les locataires à afficher
+            const tenantsToDisplay = selectedTenantId === 'all' 
+                ? tenants 
+                : tenants.filter(t => t.id === parseInt(selectedTenantId));
+            
+            // Parcourir chaque locataire
+            tenantsToDisplay.forEach(tenant => {
+                const property = properties.find(p => p.id === tenant.propertyId);
+                let tenantTotalCharges = 0;
+                let monthsDetails = '';
+                
+                // Parcourir tous les mois de l'année
+                const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                
+                for (let monthNum = 1; monthNum <= 12; monthNum++) {
+                    const monthStr = monthNames[monthNum - 1];
+                    const receiptKey = `${tenant.id}-${monthStr}-${year}`;
+                    const receipt = receiptsHistory.find(r => r.key === receiptKey);
+                    
+                    if (receipt) {
+                        const charges = parseFloat(receipt.charges);
+                        tenantTotalCharges += charges;
+                        monthsDetails += `
+                            <div class="charges-detail">
+                                <span>${monthStr}</span>
+                                <span style="color: #667eea; font-weight: 600;">${charges.toFixed(2)} €</span>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Si le locataire a des charges pour cette année, afficher sa carte
+                if (tenantTotalCharges > 0) {
+                    totalChargesYear += tenantTotalCharges;
+                    
+                    html += `
+                        <div class="charges-card">
+                            <h3>${tenant.name}</h3>
+                            <p style="color: #666; margin-bottom: 15px;">
+                                <strong>📍</strong> ${property ? property.address : 'Propriété inconnue'}<br>
+                                <strong>💰</strong> Charges mensuelles : ${tenant.charges.toFixed(2)} €
+                            </p>
+                            ${monthsDetails}
+                            <div class="charges-total">
+                                <span>Total ${year}</span>
+                                <span style="color: #667eea;">${tenantTotalCharges.toFixed(2)} €</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            if (html === '') {
+                const message = selectedTenantId === 'all' 
+                    ? `Aucune quittance générée pour l'année ${year}.`
+                    : `Aucune quittance générée pour ce locataire en ${year}.`;
+                
+                reportDiv.innerHTML = `
+                    <p style="text-align: center; color: #999; padding: 40px;">
+                        ${message}<br>
+                        <small style="display: block; margin-top: 10px;">
+                            Les charges seront comptabilisées automatiquement lorsque vous générerez des quittances.
+                        </small>
+                    </p>
+                `;
+            } else {
+                // Compter le nombre de quittances pour le(s) locataire(s) sélectionné(s)
+                let receiptsCount;
+                if (selectedTenantId === 'all') {
+                    receiptsCount = receiptsHistory.filter(r => r.year === year).length;
+                } else {
+                    receiptsCount = receiptsHistory.filter(r => 
+                        r.year === year && r.tenantId === parseInt(selectedTenantId)
+                    ).length;
+                }
+                
+                const totalLabel = selectedTenantId === 'all' 
+                    ? `Total des charges ${year}`
+                    : `Total des charges ${year} - ${tenantsToDisplay[0].name}`;
+                
+                html += `
+                    <div class="charges-total-global">
+                        <h3>${totalLabel}</h3>
+                        <div class="amount">${totalChargesYear.toFixed(2)} €</div>
+                        <p style="margin-top: 10px; opacity: 0.9;">
+                            Pour ${receiptsCount} quittance(s) générée(s)
+                        </p>
+                    </div>
+                `;
+                reportDiv.innerHTML = html;
+            }
+        }
+
+        // Gestion des données - Export/Import
+        function updateDataStats() {
+            const hasLandlord = landlordData.name ? '✅ Configuré' : '❌ Non configuré';
+            const propertiesCount = properties.length;
+            const tenantsCount = tenants.length;
+            
+            document.getElementById('statLandlord').textContent = hasLandlord;
+            document.getElementById('statProperties').textContent = `${propertiesCount} bien${propertiesCount > 1 ? 's' : ''}`;
+            document.getElementById('statTenants').textContent = `${tenantsCount} locataire${tenantsCount > 1 ? 's' : ''}`;
+            document.getElementById('exportStats').style.display = 'block';
+        }
+
+        function exportAllData() {
+            updateDataStats();
+            
+            // Créer l'objet contenant toutes les données
+            const allData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                landlord: landlordData,
+                properties: properties,
+                tenants: tenants,
+                receiptsHistory: receiptsHistory
+            };
+            
+            // Convertir en JSON
+            const jsonString = JSON.stringify(allData, null, 2);
+            
+            // Créer un blob et un lien de téléchargement
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            // Nom du fichier avec la date
+            const date = new Date().toISOString().split('T')[0];
+            link.download = `quittances_donnees_${date}.json`;
+            link.href = url;
+            
+            // Déclencher le téléchargement
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Vos données ont été exportées avec succès !');
+        }
+
+        function importAllData() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('⚠️ Veuillez sélectionner un fichier JSON à importer');
+                return;
+            }
+            
+            // Confirmer avant d'écraser les données
+            const confirmation = confirm('⚠️ ATTENTION !\n\nCette opération va remplacer TOUTES vos données actuelles par celles du fichier.\n\nÊtes-vous sûr de vouloir continuer ?');
+            
+            if (!confirmation) {
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // Vérifier la structure des données
+                    if (!importedData.landlord || !importedData.properties || !importedData.tenants) {
+                        alert('❌ Erreur : Le fichier JSON ne contient pas les bonnes données');
+                        return;
+                    }
+                    
+                    // Importer les données
+                    landlordData = importedData.landlord;
+                    properties = importedData.properties;
+                    tenants = importedData.tenants;
+                    receiptsHistory = importedData.receiptsHistory || [];
+                    
+                    // Sauvegarder dans localStorage
+                    localStorage.setItem('landlordData', JSON.stringify(landlordData));
+                    localStorage.setItem('properties', JSON.stringify(properties));
+                    localStorage.setItem('tenants', JSON.stringify(tenants));
+                    localStorage.setItem('receiptsHistory', JSON.stringify(receiptsHistory));
+                    
+                    // Mettre à jour l'interface
+                    loadLandlordData();
+                    updatePropertyList();
+                    updateTenantList();
+                    updatePropertySelects();
+                    updateTenantSelect();
+                    
+                    alert(`✅ Données importées avec succès !\n\n• Bailleur : ${landlordData.name || 'Non configuré'}\n• Propriétés : ${properties.length}\n• Locataires : ${tenants.length}`);
+                    
+                    // Revenir à l'onglet bailleur
+                    document.querySelectorAll('.menu-item')[0].click();
+                    
+                } catch (error) {
+                    alert('❌ Erreur lors de l\'importation : Le fichier JSON est invalide\n\n' + error.message);
+                }
+            };
+            
+            reader.onerror = function() {
+                alert('❌ Erreur lors de la lecture du fichier');
+            };
+            
+            reader.readAsText(file);
+            
+            // Réinitialiser l'input file
+            fileInput.value = '';
+        }
+
+        function deleteAllData() {
+            const confirmation = confirm('⚠️ DANGER !\n\nVous êtes sur le point de SUPPRIMER TOUTES VOS DONNÉES de manière PERMANENTE :\n\n• Informations du bailleur\n• Toutes les propriétés\n• Tous les locataires\n\nCette action est IRRÉVERSIBLE !\n\nÊtes-vous absolument sûr ?');
+            
+            if (!confirmation) {
+                return;
+            }
+            
+            // Double confirmation
+            const finalConfirmation = confirm('⚠️ DERNIÈRE CHANCE !\n\nTapez OK pour confirmer la suppression définitive de toutes vos données.');
+            
+            if (!finalConfirmation) {
+                return;
+            }
+            
+            // Supprimer toutes les données
+            localStorage.removeItem('landlordData');
+            localStorage.removeItem('properties');
+            localStorage.removeItem('tenants');
+            localStorage.removeItem('receiptsHistory');
+            
+            // Réinitialiser les variables
+            landlordData = {};
+            properties = [];
+            tenants = [];
+            receiptsHistory = [];
+            
+            // Mettre à jour l'interface
+            loadLandlordData();
+            updatePropertyList();
+            updateTenantList();
+            updatePropertySelects();
+            updateTenantSelect();
+            
+            // Réinitialiser les champs du formulaire bailleur
+            document.getElementById('landlordName').value = '';
+            document.getElementById('landlordAddress').value = '';
+            document.getElementById('landlordPostcode').value = '';
+            document.getElementById('landlordCity').value = '';
+            document.getElementById('landlordEmail').value = '';
+            document.getElementById('landlordPhone').value = '';
+            document.getElementById('signaturePreview').style.display = 'none';
+            
+            alert('✅ Toutes vos données ont été supprimées.');
+            
+            // Revenir à l'onglet bailleur
+            document.querySelectorAll('.menu-item')[0].click();
+        }
+
+        // Gestion de l'historique des locataires
+        function showTenantHistory(tenantId) {
+            const tenant = tenants.find(t => t.id === tenantId);
+            if (!tenant) return;
+
+            const property = properties.find(p => p.id === tenant.propertyId);
+            
+            // Récupérer toutes les quittances de ce locataire
+            const tenantReceipts = receiptsHistory.filter(r => r.tenantId === tenantId);
+            
+            // Sauvegarder les données pour le filtre
+            currentHistoryData = { tenant, property, receipts: tenantReceipts };
+            currentHistoryType = 'tenant';
+            
+            // Afficher avec "Toutes les années" par défaut
+            renderTenantHistory('all');
+        }
+
+        function renderTenantHistory(selectedYear) {
+            if (!currentHistoryData) return;
+            
+            const { tenant, property, receipts: allReceipts } = currentHistoryData;
+            
+            // Obtenir toutes les années disponibles
+            const availableYears = [...new Set(allReceipts.map(r => r.year))].sort((a, b) => parseInt(b) - parseInt(a));
+            
+            // Filtrer les quittances par année
+            const filteredReceipts = selectedYear === 'all' 
+                ? allReceipts 
+                : allReceipts.filter(r => r.year === selectedYear);
+            
+            // Grouper par mois et trier
+            const monthOrder = ['Décembre', 'Novembre', 'Octobre', 'Septembre', 'Août', 'Juillet',
+                              'Juin', 'Mai', 'Avril', 'Mars', 'Février', 'Janvier'];
+            
+            const receiptsByMonth = {};
+            filteredReceipts.forEach(receipt => {
+                const monthKey = receipt.month;
+                if (!receiptsByMonth[monthKey]) {
+                    receiptsByMonth[monthKey] = [];
+                }
+                receiptsByMonth[monthKey].push(receipt);
+            });
+            
+            // Trier chaque groupe de mois par date de génération (plus récent en premier)
+            Object.keys(receiptsByMonth).forEach(month => {
+                receiptsByMonth[month].sort((a, b) => {
+                    const dateA = new Date(a.generatedAt);
+                    const dateB = new Date(b.generatedAt);
+                    return dateB - dateA;
+                });
+            });
+            
+            // Créer un tableau trié pour l'affichage
+            const sortedReceipts = [];
+            monthOrder.forEach(month => {
+                if (receiptsByMonth[month]) {
+                    sortedReceipts.push(...receiptsByMonth[month]);
+                }
+            });
+
+            const modal = document.getElementById('historyModal');
+            const content = document.getElementById('historyModalContent');
+            
+            let html = `
+                <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px;">${tenant.name}</h3>
+                    <p style="color: #666; margin: 5px 0;"><strong>📍</strong> ${property ? property.address : 'Propriété inconnue'}</p>
+                    <p style="color: #666; margin: 5px 0;"><strong>💰</strong> Loyer : ${tenant.rent.toFixed(2)}€ + ${tenant.charges.toFixed(2)}€ charges</p>
+                </div>
+            `;
+
+            // Ajouter le filtre par année si nécessaire
+            if (availableYears.length > 0) {
+                html += `
+                    <div class="modal-filter">
+                        <label>Filtrer par année</label>
+                        <select onchange="renderTenantHistory(this.value)">
+                            <option value="all" ${selectedYear === 'all' ? 'selected' : ''}>Toutes les années</option>
+                            ${availableYears.map(year => `<option value="${year}" ${selectedYear === year ? 'selected' : ''}>${year}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+
+            if (sortedReceipts.length === 0) {
+                const message = selectedYear === 'all' 
+                    ? 'Aucune quittance générée pour ce locataire'
+                    : `Aucune quittance pour l'année ${selectedYear}`;
+                html += `
+                    <div class="history-empty">
+                        <p>😔 ${message}</p>
+                        <small>Les quittances apparaîtront ici après leur génération</small>
+                    </div>
+                `;
+            } else {
+                let totalCharges = 0;
+                let totalRent = 0;
+
+                sortedReceipts.forEach(receipt => {
+                    const charges = parseFloat(receipt.charges);
+                    const rent = parseFloat(tenant.rent);
+                    totalCharges += charges;
+                    totalRent += rent;
+
+                    const generatedDate = new Date(receipt.generatedAt).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                    });
+
+                    html += `
+                        <div class="history-item">
+                            <div class="history-item-info">
+                                <div class="history-item-month">${receipt.month} ${receipt.year}</div>
+                                <div class="history-item-date">Généré le ${generatedDate}</div>
+                                <div class="history-item-date">Loyer : ${rent.toFixed(2)}€ | Charges : ${charges.toFixed(2)}€</div>
+                            </div>
+                            <div class="history-item-right">
+                                <div class="history-item-amount">
+                                    ${(rent + charges).toFixed(2)}€
+                                </div>
+                                <button class="btn btn-regenerate" onclick="regenerateReceipt(${tenant.id}, '${receipt.month}', '${receipt.year}', '${receipt.paymentDate}')">
+                                    🔄 Regénérer
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const yearLabel = selectedYear === 'all' ? '' : ` ${selectedYear}`;
+                html += `
+                    <div class="history-summary">
+                        <h3>Total des paiements${yearLabel}</h3>
+                        <div style="margin: 10px 0;">
+                            <div style="font-size: 0.9em; opacity: 0.9;">
+                                ${sortedReceipts.length} quittance${sortedReceipts.length > 1 ? 's' : ''} générée${sortedReceipts.length > 1 ? 's' : ''}
+                            </div>
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-top: 5px;">
+                                Loyer total : ${totalRent.toFixed(2)}€ | Charges totales : ${totalCharges.toFixed(2)}€
+                            </div>
+                        </div>
+                        <div class="total">${(totalRent + totalCharges).toFixed(2)}€</div>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            modal.classList.add('show');
+        }
+
+        function closeHistoryModal() {
+            const modal = document.getElementById('historyModal');
+            modal.classList.remove('show');
+        }
+
+        function openAddPropertyModal() {
+            const modal = document.getElementById('addPropertyModal');
+            modal.classList.add('show');
+        }
+
+        function closeAddPropertyModal() {
+            const modal = document.getElementById('addPropertyModal');
+            modal.classList.remove('show');
+        }
+
+        function openEditPropertyModal() {
+            const modal = document.getElementById('editPropertyModal');
+            modal.classList.add('show');
+        }
+
+        function closeEditPropertyModal() {
+            const modal = document.getElementById('editPropertyModal');
+            modal.classList.remove('show');
+        }
+
+        function editProperty(propertyId) {
+            const property = properties.find(p => p.id === propertyId);
+            if (!property) return;
+
+            // Remplir les champs du formulaire
+            document.getElementById('editPropertyId').value = property.id;
+            document.getElementById('editPropertyAddress').value = property.address;
+            document.getElementById('editPropertyPostcode').value = property.postcode;
+            document.getElementById('editPropertyCity').value = property.city;
+            document.getElementById('editPropertyType').value = property.type;
+            document.getElementById('editPropertyRooms').value = property.rooms;
+            document.getElementById('editPropertySyndicName').value = property.syndicName || '';
+            document.getElementById('editPropertySyndicIBAN').value = property.syndicIBAN || '';
+
+            openEditPropertyModal();
+        }
+
+        function saveEditProperty() {
+            const propertyId = parseInt(document.getElementById('editPropertyId').value);
+            const propertyIndex = properties.findIndex(p => p.id === propertyId);
+            
+            if (propertyIndex === -1) {
+                alert('❌ Erreur : Propriété introuvable');
+                return;
+            }
+
+            const updatedProperty = {
+                id: propertyId,
+                address: document.getElementById('editPropertyAddress').value,
+                postcode: document.getElementById('editPropertyPostcode').value,
+                city: document.getElementById('editPropertyCity').value,
+                type: document.getElementById('editPropertyType').value,
+                rooms: parseInt(document.getElementById('editPropertyRooms').value),
+                syndicName: document.getElementById('editPropertySyndicName').value || '',
+                syndicIBAN: document.getElementById('editPropertySyndicIBAN').value || ''
+            };
+
+            if (!updatedProperty.address || !updatedProperty.postcode || !updatedProperty.city || !updatedProperty.rooms) {
+                alert('Veuillez remplir tous les champs obligatoires (*)');
+                return;
+            }
+
+            properties[propertyIndex] = updatedProperty;
+            localStorage.setItem('properties', JSON.stringify(properties));
+
+            updatePropertyList();
+            updatePropertySelects();
+            closeEditPropertyModal();
+            alert('✅ Propriété modifiée avec succès !');
+        }
+
+        function openAddTenantModal() {
+            const modal = document.getElementById('addTenantModal');
+            modal.classList.add('show');
+        }
+
+        function closeAddTenantModal() {
+            const modal = document.getElementById('addTenantModal');
+            modal.classList.remove('show');
+        }
+
+        function openEditTenantModal() {
+            const modal = document.getElementById('editTenantModal');
+            modal.classList.add('show');
+        }
+
+        function closeEditTenantModal() {
+            const modal = document.getElementById('editTenantModal');
+            modal.classList.remove('show');
+        }
+
+        function editTenant(tenantId) {
+            const tenant = tenants.find(t => t.id === tenantId);
+            if (!tenant) return;
+
+            // Remplir le select des propriétés pour la modale d'édition
+            const editSelect = document.getElementById('editTenantProperty');
+            editSelect.innerHTML = '<option value="">Sélectionnez une propriété</option>';
+            properties.forEach(property => {
+                const option = document.createElement('option');
+                option.value = property.id;
+                option.textContent = `${property.type} - ${property.address}, ${property.city}`;
+                if (property.id === tenant.propertyId) {
+                    option.selected = true;
+                }
+                editSelect.appendChild(option);
+            });
+
+            // Remplir les champs du formulaire
+            document.getElementById('editTenantId').value = tenant.id;
+            document.getElementById('editTenantProperty').value = tenant.propertyId;
+            document.getElementById('editTenantName').value = tenant.name;
+            document.getElementById('editTenantStartDate').value = tenant.startDate;
+            document.getElementById('editTenantRent').value = tenant.rent;
+            document.getElementById('editTenantCharges').value = tenant.charges;
+
+            openEditTenantModal();
+        }
+
+        function saveEditTenant() {
+            const tenantId = parseInt(document.getElementById('editTenantId').value);
+            const tenantIndex = tenants.findIndex(t => t.id === tenantId);
+            
+            if (tenantIndex === -1) {
+                alert('❌ Erreur : Locataire introuvable');
+                return;
+            }
+
+            const updatedTenant = {
+                id: tenantId,
+                propertyId: parseInt(document.getElementById('editTenantProperty').value),
+                name: document.getElementById('editTenantName').value,
+                startDate: document.getElementById('editTenantStartDate').value,
+                rent: parseFloat(document.getElementById('editTenantRent').value),
+                charges: parseFloat(document.getElementById('editTenantCharges').value)
+            };
+
+            if (!updatedTenant.propertyId || !updatedTenant.name || !updatedTenant.startDate || !updatedTenant.rent || updatedTenant.charges === '') {
+                alert('Veuillez remplir tous les champs obligatoires (*)');
+                return;
+            }
+
+            tenants[tenantIndex] = updatedTenant;
+            localStorage.setItem('tenants', JSON.stringify(tenants));
+
+            updateTenantList();
+            updateTenantSelect();
+            closeEditTenantModal();
+            alert('✅ Locataire modifié avec succès !');
+        }
+
+        function regenerateReceipt(tenantId, month, year, paymentDate) {
+            const tenant = tenants.find(t => t.id === tenantId);
+            if (!tenant) {
+                alert('❌ Erreur : Locataire introuvable');
+                return;
+            }
+
+            const property = properties.find(p => p.id === tenant.propertyId);
+            if (!property) {
+                alert('❌ Erreur : Propriété introuvable');
+                return;
+            }
+
+            if (!landlordData.name) {
+                alert('❌ Erreur : Informations du bailleur manquantes');
+                return;
+            }
+
+            // Générer le PDF
+            createReceiptPDF(landlordData, property, tenant, month, year, paymentDate, false);
+            
+            // Optionnel : fermer la modale après regénération
+            // closeHistoryModal();
+        }
+
+        // Gestion de l'historique des propriétés
+        function showPropertyHistory(propertyId) {
+            const property = properties.find(p => p.id === propertyId);
+            if (!property) return;
+
+            // Récupérer tous les locataires de cette propriété
+            const propertyTenants = tenants.filter(t => t.propertyId === propertyId);
+            
+            // Récupérer toutes les quittances pour cette propriété
+            const propertyReceipts = [];
+            propertyTenants.forEach(tenant => {
+                const tenantReceipts = receiptsHistory.filter(r => r.tenantId === tenant.id);
+                tenantReceipts.forEach(receipt => {
+                    propertyReceipts.push({
+                        ...receipt,
+                        tenantName: tenant.name,
+                        rent: tenant.rent
+                    });
+                });
+            });
+            
+            // Sauvegarder les données pour le filtre
+            currentHistoryData = { property, propertyTenants, receipts: propertyReceipts };
+            currentHistoryType = 'property';
+            
+            // Afficher avec "Toutes les années" par défaut
+            renderPropertyHistory('all');
+        }
+
+        function renderPropertyHistory(selectedYear) {
+            if (!currentHistoryData) return;
+            
+            const { property, propertyTenants, receipts: allReceipts } = currentHistoryData;
+            
+            // Obtenir toutes les années disponibles
+            const availableYears = [...new Set(allReceipts.map(r => r.year))].sort((a, b) => parseInt(b) - parseInt(a));
+            
+            // Filtrer les quittances par année
+            const filteredReceipts = selectedYear === 'all' 
+                ? allReceipts 
+                : allReceipts.filter(r => r.year === selectedYear);
+            
+            // Trier par date (plus récent en premier)
+            filteredReceipts.sort((a, b) => {
+                const dateA = new Date(a.generatedAt);
+                const dateB = new Date(b.generatedAt);
+                return dateB - dateA;
+            });
+
+            const modal = document.getElementById('historyModal');
+            const content = document.getElementById('historyModalContent');
+            
+            let html = `
+                <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px;">${property.type} - ${property.rooms} pièce${property.rooms > 1 ? 's' : ''}</h3>
+                    <p style="color: #666; margin: 5px 0;"><strong>📍</strong> ${property.address}, ${property.postcode} ${property.city}</p>
+                    <p style="color: #666; margin: 5px 0;"><strong>👥</strong> ${propertyTenants.length} locataire${propertyTenants.length > 1 ? 's' : ''} (actuel${propertyTenants.length > 1 ? 's' : ''} ou passé${propertyTenants.length > 1 ? 's' : ''})</p>
+                </div>
+            `;
+
+            // Ajouter le filtre par année si nécessaire
+            if (availableYears.length > 0) {
+                html += `
+                    <div class="modal-filter">
+                        <label>Filtrer par année</label>
+                        <select onchange="renderPropertyHistory(this.value)">
+                            <option value="all" ${selectedYear === 'all' ? 'selected' : ''}>Toutes les années</option>
+                            ${availableYears.map(year => `<option value="${year}" ${selectedYear === year ? 'selected' : ''}>${year}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+
+            if (filteredReceipts.length === 0) {
+                const message = selectedYear === 'all' 
+                    ? 'Aucune quittance générée pour cette propriété'
+                    : `Aucune quittance pour l'année ${selectedYear}`;
+                html += `
+                    <div class="history-empty">
+                        <p>😔 ${message}</p>
+                        <small>Les quittances apparaîtront ici après leur génération</small>
+                    </div>
+                `;
+            } else {
+                let totalCharges = 0;
+                let totalRent = 0;
+
+                filteredReceipts.forEach(receipt => {
+                    const charges = parseFloat(receipt.charges);
+                    const rent = parseFloat(receipt.rent);
+                    totalCharges += charges;
+                    totalRent += rent;
+
+                    const generatedDate = new Date(receipt.generatedAt).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                    });
+
+                    html += `
+                        <div class="history-item">
+                            <div class="history-item-info">
+                                <div class="history-item-month">${receipt.month} ${receipt.year} - ${receipt.tenantName}</div>
+                                <div class="history-item-date">Généré le ${generatedDate}</div>
+                                <div class="history-item-date">Loyer : ${rent.toFixed(2)}€ | Charges : ${charges.toFixed(2)}€</div>
+                            </div>
+                            <div class="history-item-right">
+                                <div class="history-item-amount">
+                                    ${(rent + charges).toFixed(2)}€
+                                </div>
+                                <button class="btn btn-regenerate" onclick="regenerateReceipt(${receipt.tenantId}, '${receipt.month}', '${receipt.year}', '${receipt.paymentDate}')">
+                                    🔄 Regénérer
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const yearLabel = selectedYear === 'all' ? '' : ` ${selectedYear}`;
+                html += `
+                    <div class="history-summary">
+                        <h3>Total des revenus pour ce bien${yearLabel}</h3>
+                        <div style="margin: 10px 0;">
+                            <div style="font-size: 0.9em; opacity: 0.9;">
+                                ${filteredReceipts.length} quittance${filteredReceipts.length > 1 ? 's' : ''} générée${filteredReceipts.length > 1 ? 's' : ''}
+                            </div>
+                            <div style="font-size: 0.9em; opacity: 0.9; margin-top: 5px;">
+                                Loyer total : ${totalRent.toFixed(2)}€ | Charges totales : ${totalCharges.toFixed(2)}€
+                            </div>
+                        </div>
+                        <div class="total">${(totalRent + totalCharges).toFixed(2)}€</div>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            modal.classList.add('show');
+        }
+
+        // Fermer la modale en cliquant en dehors
+        window.onclick = function(event) {
+            const historyModal = document.getElementById('historyModal');
+            const addPropertyModal = document.getElementById('addPropertyModal');
+            const editPropertyModal = document.getElementById('editPropertyModal');
+            const addTenantModal = document.getElementById('addTenantModal');
+            const editTenantModal = document.getElementById('editTenantModal');
+            
+            if (event.target === historyModal) {
+                closeHistoryModal();
+            }
+            if (event.target === addPropertyModal) {
+                closeAddPropertyModal();
+            }
+            if (event.target === editPropertyModal) {
+                closeEditPropertyModal();
+            }
+            if (event.target === addTenantModal) {
+                closeAddTenantModal();
+            }
+            if (event.target === editTenantModal) {
+                closeEditTenantModal();
+            }
+        }
+    </script>
+</body>
+</html>
