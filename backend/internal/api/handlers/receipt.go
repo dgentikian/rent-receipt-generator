@@ -6,15 +6,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
-	"github.com/dgentikian/rent-receipt-generator/internal/service"
+	"github.com/dgentikian/rent-receipt-generator/internal/controller"
 )
 
 type ReceiptHandler struct {
-	service *service.ReceiptService
+	controller *controller.ReceiptService
 }
 
-func NewReceiptHandler(service *service.ReceiptService) *ReceiptHandler {
-	return &ReceiptHandler{service: service}
+func NewReceiptHandler(ctrl *controller.ReceiptService) *ReceiptHandler {
+	return &ReceiptHandler{controller: ctrl}
 }
 
 // Create generates a new receipt
@@ -27,7 +27,7 @@ func (h *ReceiptHandler) Create(c *gin.Context) {
 		return
 	}
 
-	receipt, err := h.service.Create(landlordID, &req)
+	receipt, err := h.controller.Create(landlordID, &req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -51,7 +51,7 @@ func (h *ReceiptHandler) List(c *gin.Context) {
 		query.Limit = 50
 	}
 
-	receipts, err := h.service.List(landlordID, &query)
+	receipts, err := h.controller.List(landlordID, &query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch receipts"})
 		return
@@ -69,7 +69,7 @@ func (h *ReceiptHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	receipt, err := h.service.GetByID(receiptID, landlordID)
+	receipt, err := h.controller.GetByID(receiptID, landlordID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -87,7 +87,7 @@ func (h *ReceiptHandler) GetWithDetails(c *gin.Context) {
 		return
 	}
 
-	receipt, err := h.service.GetWithDetails(receiptID, landlordID)
+	receipt, err := h.controller.GetWithDetails(receiptID, landlordID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -105,7 +105,7 @@ func (h *ReceiptHandler) DownloadPDF(c *gin.Context) {
 		return
 	}
 
-	receipt, err := h.service.GetByID(receiptID, landlordID)
+	receipt, err := h.controller.GetByID(receiptID, landlordID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

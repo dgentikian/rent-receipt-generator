@@ -1,21 +1,21 @@
-package service
+package controller
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
-	"github.com/dgentikian/rent-receipt-generator/internal/repository"
+	"github.com/dgentikian/rent-receipt-generator/internal/model"
 	"github.com/dgentikian/rent-receipt-generator/pkg/utils"
 )
 
 type LandlordService struct {
-	repo      repository.LandlordRepository
+	repo      model.LandlordRepository
 	jwtSecret string
 	jwtExpiry time.Duration
 }
 
-func NewLandlordService(repo repository.LandlordRepository, jwtSecret string, jwtExpiry string) (*LandlordService, error) {
+func NewLandlordService(repo model.LandlordRepository, jwtSecret string, jwtExpiry string) (*LandlordService, error) {
 	expiry, err := time.ParseDuration(jwtExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("invalid JWT expiry duration: %w", err)

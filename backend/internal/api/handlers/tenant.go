@@ -4,19 +4,19 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/dgentikian/rent-receipt-generator/internal/model"
+	"github.com/dgentikian/rent-receipt-generator/internal/model/database"
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
-	"github.com/dgentikian/rent-receipt-generator/internal/repository"
-	"github.com/dgentikian/rent-receipt-generator/internal/repository/postgres"
 	"github.com/dgentikian/rent-receipt-generator/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type TenantHandler struct {
-	tenantRepo   repository.TenantRepository
-	propertyRepo repository.PropertyRepository
+	tenantRepo   model.TenantRepository
+	propertyRepo model.PropertyRepository
 }
 
-func NewTenantHandler(tenantRepo repository.TenantRepository, propertyRepo repository.PropertyRepository) *TenantHandler {
+func NewTenantHandler(tenantRepo model.TenantRepository, propertyRepo model.PropertyRepository) *TenantHandler {
 	return &TenantHandler{
 		tenantRepo:   tenantRepo,
 		propertyRepo: propertyRepo,
@@ -50,7 +50,7 @@ func (h *TenantHandler) Create(c *gin.Context) {
 		LastName:   req.LastName,
 		Email:      utils.StringToPtr(req.Email),
 		Phone:      utils.StringToPtr(req.Phone),
-		MoveInDate: postgres.ParseNullTime(req.MoveInDate),
+		MoveInDate: database.ParseNullTime(req.MoveInDate),
 		IsActive:   true,
 	}
 
@@ -160,8 +160,8 @@ func (h *TenantHandler) Update(c *gin.Context) {
 	tenant.LastName = req.LastName
 	tenant.Email = utils.StringToPtr(req.Email)
 	tenant.Phone = utils.StringToPtr(req.Phone)
-	tenant.MoveInDate = postgres.ParseNullTime(req.MoveInDate)
-	tenant.MoveOutDate = postgres.ParseNullTime(req.MoveOutDate)
+	tenant.MoveInDate = database.ParseNullTime(req.MoveInDate)
+	tenant.MoveOutDate = database.ParseNullTime(req.MoveOutDate)
 	if req.IsActive != nil {
 		tenant.IsActive = *req.IsActive
 	}

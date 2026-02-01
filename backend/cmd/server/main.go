@@ -8,9 +8,8 @@ import (
 	"github.com/dgentikian/rent-receipt-generator/internal/api"
 	"github.com/dgentikian/rent-receipt-generator/internal/api/handlers"
 	"github.com/dgentikian/rent-receipt-generator/internal/config"
-	"github.com/dgentikian/rent-receipt-generator/internal/database"
-	"github.com/dgentikian/rent-receipt-generator/internal/repository/postgres"
-	"github.com/dgentikian/rent-receipt-generator/internal/service"
+	"github.com/dgentikian/rent-receipt-generator/internal/controller"
+	"github.com/dgentikian/rent-receipt-generator/internal/model/database"
 )
 
 var (
@@ -43,26 +42,26 @@ func main() {
 		log.Fatalf("Failed to create uploads directory: %v", err)
 	}
 
-	// Initialize repositories
-	landlordRepo := postgres.NewLandlordRepository(db.DB)
-	propertyRepo := postgres.NewPropertyRepository(db.DB)
-	tenantRepo := postgres.NewTenantRepository(db.DB)
-	receiptRepo := postgres.NewReceiptRepository(db.DB)
+	// Initialize repositories (Model layer)
+	landlordRepo := database.NewLandlordRepository(db.DB)
+	propertyRepo := database.NewPropertyRepository(db.DB)
+	tenantRepo := database.NewTenantRepository(db.DB)
+	receiptRepo := database.NewReceiptRepository(db.DB)
 
-	// Initialize services
-	landlordService, err := service.NewLandlordService(landlordRepo, cfg.JWT.Secret, cfg.JWT.Expiry)
+	// Initialize controllers (Controller layer)
+	landlordController, err := controller.NewLandlordService(landlordRepo, cfg.JWT.Secret, cfg.JWT.Expiry)
 	if err != nil {
-		log.Fatalf("Failed to create landlord service: %v", err)
+		log.Fatalf("Failed to create landlord controller: %v", err)
 	}
 
-	pdfService := service.NewPDFService(cfg.App.UploadsDir)
-	receiptService := service.NewReceiptService(receiptRepo, propertyRepo, tenantRepo, pdfService)
+	pdfController := controller.NewPDFService(cfg.App.UploadsDir)
+	receiptController := controller.NewReceiptService(receiptRepo, propertyRepo, tenantRepo, pdfController)
 
-	// Initialize handlers
-	landlordHandler := handlers.NewLandlordHandler(landlordService)
+	// Initialize handlers (View layer)
+	landlordHandler := handlers.NewLandlordHandler(landlordController)
 	propertyHandler := handlers.NewPropertyHandler(propertyRepo)
 	tenantHandler := handlers.NewTenantHandler(tenantRepo, propertyRepo)
-	receiptHandler := handlers.NewReceiptHandler(receiptService)
+	receiptHandler := handlers.NewReceiptHandler(receiptController)
 
 	// Setup router
 	router := api.NewRouter(

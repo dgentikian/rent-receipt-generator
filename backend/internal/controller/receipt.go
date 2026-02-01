@@ -1,4 +1,4 @@
-package service
+package controller
 
 import (
 	"database/sql"
@@ -6,20 +6,20 @@ import (
 	"time"
 
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
-	"github.com/dgentikian/rent-receipt-generator/internal/repository"
+	"github.com/dgentikian/rent-receipt-generator/internal/model"
 )
 
 type ReceiptService struct {
-	receiptRepo  repository.ReceiptRepository
-	propertyRepo repository.PropertyRepository
-	tenantRepo   repository.TenantRepository
+	receiptRepo  model.ReceiptRepository
+	propertyRepo model.PropertyRepository
+	tenantRepo   model.TenantRepository
 	pdfService   *PDFService
 }
 
 func NewReceiptService(
-	receiptRepo repository.ReceiptRepository,
-	propertyRepo repository.PropertyRepository,
-	tenantRepo repository.TenantRepository,
+	receiptRepo model.ReceiptRepository,
+	propertyRepo model.PropertyRepository,
+	tenantRepo model.TenantRepository,
 	pdfService *PDFService,
 ) *ReceiptService {
 	return &ReceiptService{

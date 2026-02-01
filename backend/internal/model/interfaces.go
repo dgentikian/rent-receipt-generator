@@ -1,4 +1,4 @@
-package repository
+package model
 
 import "github.com/dgentikian/rent-receipt-generator/internal/models"
 

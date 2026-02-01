@@ -4,17 +4,17 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/dgentikian/rent-receipt-generator/internal/controller"
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
-	"github.com/dgentikian/rent-receipt-generator/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 type LandlordHandler struct {
-	service *service.LandlordService
+	controller *controller.LandlordService
 }
 
-func NewLandlordHandler(service *service.LandlordService) *LandlordHandler {
-	return &LandlordHandler{service: service}
+func NewLandlordHandler(ctrl *controller.LandlordService) *LandlordHandler {
+	return &LandlordHandler{controller: ctrl}
 }
 
 // Register creates a new landlord account
@@ -25,7 +25,7 @@ func (h *LandlordHandler) Register(c *gin.Context) {
 		return
 	}
 
-	landlord, err := h.service.Register(&req)
+	landlord, err := h.controller.Register(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -42,7 +42,7 @@ func (h *LandlordHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.Login(&req)
+	response, err := h.controller.Login(&req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -55,7 +55,7 @@ func (h *LandlordHandler) Login(c *gin.Context) {
 func (h *LandlordHandler) GetProfile(c *gin.Context) {
 	landlordID := c.GetInt("landlord_id")
 
-	landlord, err := h.service.GetByID(landlordID)
+	landlord, err := h.controller.GetByID(landlordID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Landlord not found"})
 		return
@@ -74,7 +74,7 @@ func (h *LandlordHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	landlord, err := h.service.Update(landlordID, &req)
+	landlord, err := h.controller.Update(landlordID, &req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -103,7 +103,7 @@ func (h *LandlordHandler) UploadSignature(c *gin.Context) {
 	}
 
 	// Update database
-	if err := h.service.UpdateSignature(landlordID, filepath); err != nil {
+	if err := h.controller.UpdateSignature(landlordID, filepath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update signature"})
 		return
 	}

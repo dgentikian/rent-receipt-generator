@@ -5,16 +5,16 @@ import (
 	"strconv"
 
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
-	"github.com/dgentikian/rent-receipt-generator/internal/repository"
+	"github.com/dgentikian/rent-receipt-generator/internal/model"
 	"github.com/dgentikian/rent-receipt-generator/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type PropertyHandler struct {
-	repo repository.PropertyRepository
+	repo model.PropertyRepository
 }
 
-func NewPropertyHandler(repo repository.PropertyRepository) *PropertyHandler {
+func NewPropertyHandler(repo model.PropertyRepository) *PropertyHandler {
 	return &PropertyHandler{repo: repo}
 }
 
