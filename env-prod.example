@@ -1,0 +1,39 @@
+# Production Environment Configuration
+# Copy this file to .env.prod for production deployment
+# Usage: cp env-prod.example .env.prod (then edit with your values)
+
+# Server Configuration
+PORT=8080
+ENV=production
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=rent_user
+DB_PASSWORD=CHANGE_ME_STRONG_PASSWORD_HERE
+DB_NAME=rent_receipts
+DB_SSLMODE=require
+
+# JWT Authentication
+# IMPORTANT: Generate a strong random secret (min 32 chars)
+# Generate with: openssl rand -base64 32
+JWT_SECRET=CHANGE_ME_GENERATE_STRONG_RANDOM_SECRET_MIN_32_CHARS
+JWT_EXPIRY=24h
+
+# Application
+UPLOADS_DIR=/opt/rent-receipt-generator/uploads
+FRONTEND_URL=https://yourdomain.com
+BACKEND_URL=https://yourdomain.com/api
+
+# CORS
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+
+# Email Configuration (Optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=noreply@yourdomain.com
+
+# Production Options
+# LOG_LEVEL=info

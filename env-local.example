@@ -1,0 +1,40 @@
+# Local Development Environment Configuration
+# Copy this file to .env.local for local development
+# Usage: cp env-local.example .env.local
+
+# Server Configuration
+PORT=8080
+ENV=development
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=rent_user
+DB_PASSWORD=
+# Leave DB_PASSWORD empty if your local PostgreSQL uses trust authentication
+# Or set a password if your local setup requires it
+DB_NAME=rent_receipts
+DB_SSLMODE=disable
+
+# JWT Authentication
+JWT_SECRET=local_dev_jwt_secret_min_32_characters_long_change_in_prod
+JWT_EXPIRY=24h
+
+# Application
+UPLOADS_DIR=./uploads
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8080
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# Email Configuration (Optional - for testing)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=noreply@localhost
+
+# Development Options
+# Uncomment for verbose logging
+:XLOG_LEVEL=debug
