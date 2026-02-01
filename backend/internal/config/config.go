@@ -43,7 +43,9 @@ type AppConfig struct {
 
 func Load() (*Config, error) {
 	// Load .env file if it exists
-	_ = godotenv.Load()
+	// Try .env.local first (for local development), then .env
+	_ = godotenv.Load(".env.local")
+	_ = godotenv.Load() // Fallback to .env
 
 	dbPort, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
 	if err != nil {
@@ -76,8 +78,9 @@ func Load() (*Config, error) {
 	}
 
 	// Validate required fields
-	if config.Database.Password == "" {
-		return nil, fmt.Errorf("DB_PASSWORD is required")
+	// DB_PASSWORD is only required in production
+	if config.Server.Env == "production" && config.Database.Password == "" {
+		return nil, fmt.Errorf("DB_PASSWORD is required in production")
 	}
 	if config.JWT.Secret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")

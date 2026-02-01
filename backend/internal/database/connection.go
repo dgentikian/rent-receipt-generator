@@ -14,8 +14,22 @@ type DB struct {
 }
 
 func Connect(cfg *config.DatabaseConfig) (*DB, error) {
+	// Build connection string with search_path
+	password := cfg.Password
+	if password == "" {
+		dsn := fmt.Sprintf(
+			"host=%s port=%d user=%s dbname=%s sslmode=%s search_path=public",
+			cfg.Host,
+			cfg.Port,
+			cfg.User,
+			cfg.Name,
+			cfg.SSLMode,
+		)
+		return connectWithDSN(dsn, cfg)
+	}
+
 	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s search_path=public",
 		cfg.Host,
 		cfg.Port,
 		cfg.User,
@@ -23,6 +37,14 @@ func Connect(cfg *config.DatabaseConfig) (*DB, error) {
 		cfg.Name,
 		cfg.SSLMode,
 	)
+
+	return connectWithDSN(dsn, cfg)
+}
+
+func connectWithDSN(dsn string, cfg *config.DatabaseConfig) (*DB, error) {
+	// Debug: Log connection details (without password)
+	fmt.Printf("Connecting to database: host=%s port=%d user=%s dbname=%s\n",
+		cfg.Host, cfg.Port, cfg.User, cfg.Name)
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {

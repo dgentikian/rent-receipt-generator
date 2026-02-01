@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
 	"github.com/dgentikian/rent-receipt-generator/internal/repository"
+	"github.com/dgentikian/rent-receipt-generator/pkg/utils"
+	"github.com/gin-gonic/gin"
 )
 
 type PropertyHandler struct {
@@ -30,12 +31,12 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 	property := &models.Property{
 		LandlordID:    landlordID,
 		Address:       req.Address,
-		City:          req.City,
-		PostalCode:    req.PostalCode,
+		City:          utils.StringToPtr(req.City),
+		PostalCode:    utils.StringToPtr(req.PostalCode),
 		RentAmount:    req.RentAmount,
 		ChargesAmount: req.ChargesAmount,
-		SyndicName:    req.SyndicName,
-		SyndicAddress: req.SyndicAddress,
+		SyndicName:    utils.StringToPtr(req.SyndicName),
+		SyndicAddress: utils.StringToPtr(req.SyndicAddress),
 	}
 
 	if err := h.repo.Create(property); err != nil {
@@ -111,12 +112,12 @@ func (h *PropertyHandler) Update(c *gin.Context) {
 	}
 
 	property.Address = req.Address
-	property.City = req.City
-	property.PostalCode = req.PostalCode
+	property.City = utils.StringToPtr(req.City)
+	property.PostalCode = utils.StringToPtr(req.PostalCode)
 	property.RentAmount = req.RentAmount
 	property.ChargesAmount = req.ChargesAmount
-	property.SyndicName = req.SyndicName
-	property.SyndicAddress = req.SyndicAddress
+	property.SyndicName = utils.StringToPtr(req.SyndicName)
+	property.SyndicAddress = utils.StringToPtr(req.SyndicAddress)
 
 	if err := h.repo.Update(property); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update property"})

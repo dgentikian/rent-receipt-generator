@@ -7,8 +7,14 @@ echo "Building Go backend..."
 # Set build variables
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
-GOOS=${GOOS:-linux}
-GOARCH=${GOARCH:-amd64}
+
+# Auto-detect platform if not set
+if [ -z "$GOOS" ]; then
+    GOOS=$(go env GOOS)
+fi
+if [ -z "$GOARCH" ]; then
+    GOARCH=$(go env GOARCH)
+fi
 
 # Create bin directory if it doesn't exist
 mkdir -p bin

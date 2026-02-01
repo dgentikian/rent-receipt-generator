@@ -1,7 +1,13 @@
-# Environment variables
+# Environment variables (actual files with secrets)
 .env
 .env.local
+.env.prod
 .env.production
+
+# Keep example files
+!env-local.example
+!env-prod.example
+!.env.example
 
 # Backend (Go)
 backend/bin/

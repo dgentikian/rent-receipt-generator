@@ -192,6 +192,12 @@ func (r *ReceiptRepo) GetWithDetails(id int) (*models.ReceiptWithDetails, error)
 	return result, err
 }
 
+func (r *ReceiptRepo) UpdatePDFURL(id int, pdfURL string) error {
+	query := `UPDATE receipts SET pdf_url = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, pdfURL, id)
+	return err
+}
+
 func (r *ReceiptRepo) CheckDuplicate(propertyID, tenantID, year, month int) (bool, error) {
 	query := `
 		SELECT COUNT(*) FROM receipts 

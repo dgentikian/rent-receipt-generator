@@ -22,6 +22,7 @@ type TenantRepository interface {
 	Create(tenant *models.Tenant) error
 	GetByID(id int) (*models.Tenant, error)
 	GetByPropertyID(propertyID int) ([]*models.Tenant, error)
+	GetByLandlordID(landlordID int) ([]*models.Tenant, error)
 	Update(tenant *models.Tenant) error
 	Delete(id int) error
 }
@@ -31,5 +32,6 @@ type ReceiptRepository interface {
 	GetByID(id int) (*models.Receipt, error)
 	GetByLandlordID(landlordID int, query *models.ReceiptListQuery) ([]*models.Receipt, error)
 	GetWithDetails(id int) (*models.ReceiptWithDetails, error)
+	UpdatePDFURL(id int, pdfURL string) error
 	CheckDuplicate(propertyID, tenantID, year, month int) (bool, error)
 }

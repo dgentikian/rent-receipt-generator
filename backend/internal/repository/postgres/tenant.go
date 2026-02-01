@@ -97,6 +97,45 @@ func (r *TenantRepo) GetByPropertyID(propertyID int) ([]*models.Tenant, error) {
 	return tenants, nil
 }
 
+func (r *TenantRepo) GetByLandlordID(landlordID int) ([]*models.Tenant, error) {
+	query := `
+		SELECT t.id, t.property_id, t.first_name, t.last_name, t.email, t.phone, 
+		       t.move_in_date, t.move_out_date, t.is_active, t.created_at, t.updated_at
+		FROM tenants t
+		INNER JOIN properties p ON t.property_id = p.id
+		WHERE p.landlord_id = $1
+		ORDER BY t.is_active DESC, t.created_at DESC
+	`
+	rows, err := r.db.Query(query, landlordID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tenants := []*models.Tenant{}
+	for rows.Next() {
+		tenant := &models.Tenant{}
+		err := rows.Scan(
+			&tenant.ID,
+			&tenant.PropertyID,
+			&tenant.FirstName,
+			&tenant.LastName,
+			&tenant.Email,
+			&tenant.Phone,
+			&tenant.MoveInDate,
+			&tenant.MoveOutDate,
+			&tenant.IsActive,
+			&tenant.CreatedAt,
+			&tenant.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tenants = append(tenants, tenant)
+	}
+	return tenants, nil
+}
+
 func (r *TenantRepo) Update(tenant *models.Tenant) error {
 	query := `
 		UPDATE tenants

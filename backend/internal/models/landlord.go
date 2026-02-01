@@ -8,11 +8,11 @@ type Landlord struct {
 	PasswordHash string    `json:"-"` // Never send password hash to client
 	FirstName    string    `json:"first_name"`
 	LastName     string    `json:"last_name"`
-	Address      string    `json:"address"`
-	City         string    `json:"city"`
-	PostalCode   string    `json:"postal_code"`
-	Phone        string    `json:"phone"`
-	SignatureURL string    `json:"signature_url"`
+	Address      *string   `json:"address,omitempty"`
+	City         *string   `json:"city,omitempty"`
+	PostalCode   *string   `json:"postal_code,omitempty"`
+	Phone        *string   `json:"phone,omitempty"`
+	SignatureURL *string   `json:"signature_url,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

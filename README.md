@@ -59,10 +59,22 @@ cd rent-receipt-generator
 
 ### 2. Setup environment variables
 
+**For Local Development:**
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
+# Copy the local development template
+cp env-local.example .env.local
+# Edit .env.local with your local configuration
 ```
+
+**For Production:**
+```bash
+# Copy the production template
+cp env-prod.example .env.prod
+# Edit .env.prod with your production values
+# IMPORTANT: Change all passwords and secrets!
+```
+
+The backend will automatically load `.env` or you can specify which file to use.
 
 ### 3. Setup PostgreSQL database
 

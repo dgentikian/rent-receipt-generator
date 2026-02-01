@@ -103,8 +103,3 @@ CREATE TRIGGER update_tenants_updated_at BEFORE UPDATE ON tenants
 CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_unique_period 
     ON receipts(property_id, tenant_id, period_year, period_month);
 
--- Add comments for documentation
-COMMENT ON TABLE landlords IS 'Stores landlord/property owner information and authentication';
-COMMENT ON TABLE properties IS 'Stores rental property details';
-COMMENT ON TABLE tenants IS 'Stores tenant information linked to properties';
-COMMENT ON TABLE receipts IS 'Stores generated rent receipts and their details';

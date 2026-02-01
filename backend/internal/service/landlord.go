@@ -29,8 +29,9 @@ func NewLandlordService(repo repository.LandlordRepository, jwtSecret string, jw
 
 func (s *LandlordService) Register(req *models.LandlordCreateRequest) (*models.Landlord, error) {
 	// Check if email already exists
-	existing, _ := s.repo.GetByEmail(req.Email)
-	if existing != nil {
+	existing, err := s.repo.GetByEmail(req.Email)
+	if err == nil && existing != nil {
+		// No error means user was found
 		return nil, fmt.Errorf("email already registered")
 	}
 
@@ -45,10 +46,10 @@ func (s *LandlordService) Register(req *models.LandlordCreateRequest) (*models.L
 		PasswordHash: hashedPassword,
 		FirstName:    req.FirstName,
 		LastName:     req.LastName,
-		Address:      req.Address,
-		City:         req.City,
-		PostalCode:   req.PostalCode,
-		Phone:        req.Phone,
+		Address:      utils.StringToPtr(req.Address),
+		City:         utils.StringToPtr(req.City),
+		PostalCode:   utils.StringToPtr(req.PostalCode),
+		Phone:        utils.StringToPtr(req.Phone),
 	}
 
 	if err := s.repo.Create(landlord); err != nil {
@@ -91,10 +92,10 @@ func (s *LandlordService) Update(id int, req *models.LandlordUpdateRequest) (*mo
 
 	landlord.FirstName = req.FirstName
 	landlord.LastName = req.LastName
-	landlord.Address = req.Address
-	landlord.City = req.City
-	landlord.PostalCode = req.PostalCode
-	landlord.Phone = req.Phone
+	landlord.Address = utils.StringToPtr(req.Address)
+	landlord.City = utils.StringToPtr(req.City)
+	landlord.PostalCode = utils.StringToPtr(req.PostalCode)
+	landlord.Phone = utils.StringToPtr(req.Phone)
 
 	if err := s.repo.Update(landlord); err != nil {
 		return nil, fmt.Errorf("failed to update landlord: %w", err)

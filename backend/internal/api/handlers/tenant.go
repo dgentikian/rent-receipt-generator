@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/dgentikian/rent-receipt-generator/internal/models"
 	"github.com/dgentikian/rent-receipt-generator/internal/repository"
 	"github.com/dgentikian/rent-receipt-generator/internal/repository/postgres"
+	"github.com/dgentikian/rent-receipt-generator/pkg/utils"
+	"github.com/gin-gonic/gin"
 )
 
 type TenantHandler struct {
@@ -47,8 +48,8 @@ func (h *TenantHandler) Create(c *gin.Context) {
 		PropertyID: req.PropertyID,
 		FirstName:  req.FirstName,
 		LastName:   req.LastName,
-		Email:      req.Email,
-		Phone:      req.Phone,
+		Email:      utils.StringToPtr(req.Email),
+		Phone:      utils.StringToPtr(req.Phone),
 		MoveInDate: postgres.ParseNullTime(req.MoveInDate),
 		IsActive:   true,
 	}
@@ -61,27 +62,39 @@ func (h *TenantHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, tenant)
 }
 
-// List returns all tenants for a property
+// List returns all tenants for a property or all tenants for the landlord
 func (h *TenantHandler) List(c *gin.Context) {
 	landlordID := c.GetInt("landlord_id")
-	propertyID, err := strconv.Atoi(c.Query("property_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Property ID is required"})
-		return
+	propertyIDStr := c.Query("property_id")
+
+	var tenants []*models.Tenant
+	var err error
+
+	if propertyIDStr == "" {
+		// No property filter - return all tenants for the landlord
+		tenants, err = h.tenantRepo.GetByLandlordID(landlordID)
+	} else {
+		// Filter by specific property
+		propertyID, parseErr := strconv.Atoi(propertyIDStr)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid property ID"})
+			return
+		}
+
+		// Verify property ownership
+		property, propErr := h.propertyRepo.GetByID(propertyID)
+		if propErr != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
+			return
+		}
+		if property.LandlordID != landlordID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized"})
+			return
+		}
+
+		tenants, err = h.tenantRepo.GetByPropertyID(propertyID)
 	}
 
-	// Verify property ownership
-	property, err := h.propertyRepo.GetByID(propertyID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
-		return
-	}
-	if property.LandlordID != landlordID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	tenants, err := h.tenantRepo.GetByPropertyID(propertyID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tenants"})
 		return
@@ -145,8 +158,8 @@ func (h *TenantHandler) Update(c *gin.Context) {
 
 	tenant.FirstName = req.FirstName
 	tenant.LastName = req.LastName
-	tenant.Email = req.Email
-	tenant.Phone = req.Phone
+	tenant.Email = utils.StringToPtr(req.Email)
+	tenant.Phone = utils.StringToPtr(req.Phone)
 	tenant.MoveInDate = postgres.ParseNullTime(req.MoveInDate)
 	tenant.MoveOutDate = postgres.ParseNullTime(req.MoveOutDate)
 	if req.IsActive != nil {

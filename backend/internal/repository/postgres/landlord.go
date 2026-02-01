@@ -17,7 +17,7 @@ func NewLandlordRepository(db *sql.DB) *LandlordRepo {
 
 func (r *LandlordRepo) Create(landlord *models.Landlord) error {
 	query := `
-		INSERT INTO landlords (email, password_hash, first_name, last_name, address, city, postal_code, phone)
+		INSERT INTO public.landlords (email, password_hash, first_name, last_name, address, city, postal_code, phone)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at, updated_at
 	`
@@ -37,7 +37,7 @@ func (r *LandlordRepo) Create(landlord *models.Landlord) error {
 func (r *LandlordRepo) GetByID(id int) (*models.Landlord, error) {
 	query := `
 		SELECT id, email, password_hash, first_name, last_name, address, city, postal_code, phone, signature_url, created_at, updated_at
-		FROM landlords
+		FROM public.landlords
 		WHERE id = $1
 	`
 	landlord := &models.Landlord{}
@@ -64,7 +64,7 @@ func (r *LandlordRepo) GetByID(id int) (*models.Landlord, error) {
 func (r *LandlordRepo) GetByEmail(email string) (*models.Landlord, error) {
 	query := `
 		SELECT id, email, password_hash, first_name, last_name, address, city, postal_code, phone, signature_url, created_at, updated_at
-		FROM landlords
+		FROM public.landlords
 		WHERE email = $1
 	`
 	landlord := &models.Landlord{}
@@ -85,12 +85,15 @@ func (r *LandlordRepo) GetByEmail(email string) (*models.Landlord, error) {
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("landlord not found")
 	}
-	return landlord, err
+	if err != nil {
+		return nil, err
+	}
+	return landlord, nil
 }
 
 func (r *LandlordRepo) Update(landlord *models.Landlord) error {
 	query := `
-		UPDATE landlords
+		UPDATE public.landlords
 		SET first_name = $1, last_name = $2, address = $3, city = $4, postal_code = $5, phone = $6
 		WHERE id = $7
 		RETURNING updated_at
@@ -108,7 +111,7 @@ func (r *LandlordRepo) Update(landlord *models.Landlord) error {
 }
 
 func (r *LandlordRepo) UpdateSignature(id int, signatureURL string) error {
-	query := `UPDATE landlords SET signature_url = $1 WHERE id = $2`
+	query := `UPDATE public.landlords SET signature_url = $1 WHERE id = $2`
 	_, err := r.db.Exec(query, signatureURL, id)
 	return err
 }

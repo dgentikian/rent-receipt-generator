@@ -107,6 +107,11 @@ func (s *ReceiptService) Create(landlordID int, req *models.ReceiptCreateRequest
 		return nil, fmt.Errorf("failed to generate PDF: %w", err)
 	}
 
+	// Update receipt with PDF URL
+	if err := s.receiptRepo.UpdatePDFURL(receipt.ID, pdfPath); err != nil {
+		return nil, fmt.Errorf("failed to update PDF URL: %w", err)
+	}
+
 	receipt.PDFURL = pdfPath
 
 	return receipt, nil

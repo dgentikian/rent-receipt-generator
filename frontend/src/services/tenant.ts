@@ -7,6 +7,11 @@ export const tenantService = {
     return response.data;
   },
 
+  async getAll(): Promise<Tenant[]> {
+    const response = await api.get<Tenant[]>('/tenants');
+    return response.data;
+  },
+
   async getByProperty(propertyId: number): Promise<Tenant[]> {
     const response = await api.get<Tenant[]>(`/tenants?property_id=${propertyId}`);
     return response.data;

@@ -9,9 +9,19 @@ import { propertyService } from '../services/property';
 import { tenantService } from '../services/tenant';
 import { ReceiptCreateRequest } from '../types/receipt';
 
+const getMonthName = (month: number): string => {
+  const months = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ];
+  return months[month - 1] || '';
+};
+
 export const ReceiptsPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
+  const [rentAmount, setRentAmount] = useState<string>('');
+  const [chargesAmount, setChargesAmount] = useState<string>('');
   const queryClient = useQueryClient();
 
   const { data: receipts = [], isLoading } = useQuery({
@@ -35,8 +45,34 @@ export const ReceiptsPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['receipts'] });
       setShowForm(false);
+      // Reset form state
+      setSelectedPropertyId(null);
+      setRentAmount('');
+      setChargesAmount('');
     },
   });
+
+  const handleToggleForm = () => {
+    setShowForm(!showForm);
+    if (!showForm) {
+      // Reset form when opening
+      setSelectedPropertyId(null);
+      setRentAmount('');
+      setChargesAmount('');
+    }
+  };
+
+  const handlePropertyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const propertyId = parseInt(e.target.value);
+    setSelectedPropertyId(propertyId);
+    
+    // Auto-fill rent and charges from property data
+    const property = properties.find(p => p.id === propertyId);
+    if (property) {
+      setRentAmount(property.rent_amount.toString());
+      setChargesAmount(property.charges_amount.toString());
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,8 +82,8 @@ export const ReceiptsPage: React.FC = () => {
       tenant_id: parseInt(formData.get('tenant_id') as string),
       period_month: parseInt(formData.get('period_month') as string),
       period_year: parseInt(formData.get('period_year') as string),
-      rent_amount: parseFloat(formData.get('rent_amount') as string),
-      charges_amount: parseFloat(formData.get('charges_amount') as string) || 0,
+      rent_amount: parseFloat(rentAmount),
+      charges_amount: parseFloat(chargesAmount) || 0,
       payment_method: formData.get('payment_method') as string,
       payment_date: formData.get('payment_date') as string,
     };
@@ -76,7 +112,7 @@ export const ReceiptsPage: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800">Quittances</h1>
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button onClick={handleToggleForm}>
             {showForm ? 'Annuler' : '+ Générer une quittance'}
           </Button>
         </div>
@@ -93,7 +129,7 @@ export const ReceiptsPage: React.FC = () => {
                   name="property_id"
                   className="input"
                   required
-                  onChange={(e) => setSelectedPropertyId(parseInt(e.target.value))}
+                  onChange={handlePropertyChange}
                 >
                   <option value="">Sélectionner...</option>
                   {properties.map((p) => (
@@ -121,15 +157,23 @@ export const ReceiptsPage: React.FC = () => {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <Input
-                  name="period_month"
-                  type="number"
-                  min="1"
-                  max="12"
-                  label="Mois"
-                  defaultValue={currentMonth}
-                  required
-                />
+                <div>
+                  <label className="block mb-2 font-semibold text-gray-700">
+                    Mois *
+                  </label>
+                  <select
+                    name="period_month"
+                    className="input"
+                    defaultValue={currentMonth}
+                    required
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                      <option key={month} value={month}>
+                        {getMonthName(month)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <Input
                   name="period_year"
                   type="number"
@@ -140,20 +184,33 @@ export const ReceiptsPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Input
-                  name="rent_amount"
-                  type="number"
-                  step="0.01"
-                  label="Loyer (€)"
-                  required
-                />
-                <Input
-                  name="charges_amount"
-                  type="number"
-                  step="0.01"
-                  label="Charges (€)"
-                  defaultValue="0"
-                />
+                <div>
+                  <label className="block mb-2 font-semibold text-gray-700">
+                    Loyer (€) *
+                  </label>
+                  <input
+                    name="rent_amount"
+                    type="number"
+                    step="0.01"
+                    className="input"
+                    value={rentAmount}
+                    onChange={(e) => setRentAmount(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 font-semibold text-gray-700">
+                    Charges (€)
+                  </label>
+                  <input
+                    name="charges_amount"
+                    type="number"
+                    step="0.01"
+                    className="input"
+                    value={chargesAmount}
+                    onChange={(e) => setChargesAmount(e.target.value)}
+                  />
+                </div>
               </div>
 
               <Input name="payment_method" label="Moyen de paiement" />
@@ -182,7 +239,7 @@ export const ReceiptsPage: React.FC = () => {
                   <div>
                     <h3 className="font-bold text-lg">{receipt.receipt_number}</h3>
                     <p className="text-gray-600">
-                      Période: {receipt.period_month}/{receipt.period_year}
+                      Période: {getMonthName(receipt.period_month)} {receipt.period_year}
                     </p>
                     <p className="text-sm text-gray-500">
                       Créé le: {new Date(receipt.created_at).toLocaleDateString('fr-FR')}

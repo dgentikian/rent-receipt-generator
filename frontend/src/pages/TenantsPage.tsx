@@ -20,8 +20,10 @@ export const TenantsPage: React.FC = () => {
 
   const { data: tenants = [] } = useQuery({
     queryKey: ['tenants', selectedPropertyId],
-    queryFn: () => tenantService.getByProperty(selectedPropertyId!),
-    enabled: !!selectedPropertyId,
+    queryFn: () => 
+      selectedPropertyId 
+        ? tenantService.getByProperty(selectedPropertyId)
+        : tenantService.getAll(),
   });
 
   const createMutation = useMutation({
@@ -118,13 +120,11 @@ export const TenantsPage: React.FC = () => {
             </select>
           </div>
 
-          {!selectedPropertyId ? (
+          {tenants.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
-              Veuillez sélectionner une propriété
-            </p>
-          ) : tenants.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
-              Aucun locataire pour cette propriété
+              {selectedPropertyId 
+                ? 'Aucun locataire pour cette propriété'
+                : 'Aucun locataire enregistré'}
             </p>
           ) : (
             <div className="space-y-4">

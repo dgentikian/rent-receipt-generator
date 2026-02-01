@@ -28,10 +28,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('landlord');
-      window.location.href = '/login';
+      // Only redirect if it's not a login or register request
+      const url = error.config?.url || '';
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+      
+      if (!isAuthEndpoint) {
+        // Unauthorized on a protected route - clear token and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('landlord');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

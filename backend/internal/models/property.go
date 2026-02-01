@@ -6,12 +6,12 @@ type Property struct {
 	ID            int       `json:"id"`
 	LandlordID    int       `json:"landlord_id"`
 	Address       string    `json:"address"`
-	City          string    `json:"city"`
-	PostalCode    string    `json:"postal_code"`
+	City          *string   `json:"city,omitempty"`
+	PostalCode    *string   `json:"postal_code,omitempty"`
 	RentAmount    float64   `json:"rent_amount"`
 	ChargesAmount float64   `json:"charges_amount"`
-	SyndicName    string    `json:"syndic_name"`
-	SyndicAddress string    `json:"syndic_address"`
+	SyndicName    *string   `json:"syndic_name,omitempty"`
+	SyndicAddress *string   `json:"syndic_address,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
